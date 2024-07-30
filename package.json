@@ -1,7 +1,7 @@
 {
     "name": "backend",
     "version": "1.0.0",
-    "main": "dist/server.js",
+    "main": "dist/index.js",
     "scripts": {
         "start": "npm run build && cross-env NODE_ENV=production node dist/index.js",
         "dev": "concurrently \"tsc -w\" \"cross-env NODE_ENV=development nodemon index.ts\"",
