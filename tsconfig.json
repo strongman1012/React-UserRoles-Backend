@@ -1,0 +1,30 @@
+ {
+    "compilerOptions": {
+      "target": "ES6",
+      "allowSyntheticDefaultImports": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "node",
+      "module": "commonjs",
+      "strict": true,
+      "pretty": true,
+      "sourceMap": true,
+      "outDir": "dist",
+      "allowJs": true,
+      "noEmit": false,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "typeRoots": [
+        "./node_modules/@types"
+      ]
+    },
+    "include": [
+      "**/*.ts"
+    ],
+    "exclude": [
+      "node_modules",
+      "**/*.spec.ts"
+    ]
+  }
+  

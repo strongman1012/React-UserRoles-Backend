@@ -1,0 +1,50 @@
+import { Request, Response, NextFunction } from 'express';
+import sql from '../config/db';
+
+export const checkPermission = (area_name: string) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        const { user_role_id } = req.body;
+        const role_id = user_role_id;
+        try {
+            // Get role name
+            const roleResult = await sql('SELECT name FROM roles WHERE id = @role_id', { role_id });
+            if (!roleResult || roleResult.length === 0) {
+                return res.status(403).json({ message: 'Role not found' });
+            }
+
+            const roleName = roleResult[0].name;
+
+            let isAuthorized = false;
+
+            // Check for 'System Administrator' role
+            if (roleName === 'System Administrator') {
+                isAuthorized = true;
+            } else {
+                // Get area id
+                const areaResult = await sql('SELECT id FROM areas WHERE name = @area_name', { area_name });
+                if (areaResult && areaResult.length > 0) {
+                    const area_id = areaResult[0].id;
+
+                    // Get permission
+                    const permissionResult = await sql(
+                        'SELECT permission FROM application_area_lists WHERE role_id = @role_id AND area_id = @area_id',
+                        { role_id, area_id }
+                    );
+
+                    if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission) {
+                        isAuthorized = true;
+                    }
+                }
+            }
+
+            if (isAuthorized) {
+                return next();
+            } else {
+                return res.status(403).json({ message: 'Access denied' });
+            }
+        } catch (err) {
+            console.error('Error checking permission:', err);
+            return res.status(500).json({ message: 'Server error' });
+        }
+    };
+};
