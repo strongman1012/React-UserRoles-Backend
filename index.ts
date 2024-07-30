@@ -12,7 +12,12 @@ import businessUnitRoutes from './routes/businessUnitRoutes';
 import config from './config/config';
 
 const app = express();
-app.use(cors());
+const corsOptions = {
+    origin: '*', // Adjust this to restrict access if needed
+    optionsSuccessStatus: 200,
+    methods: ['GET', 'POST'], // Ensure GET is listed here
+};
+app.use(cors(corsOptions));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
