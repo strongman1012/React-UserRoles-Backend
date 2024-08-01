@@ -24,6 +24,9 @@ passport_1.default.use(new passport_local_1.Strategy({ usernameField: 'email' },
         if (!user) {
             return done(null, false, { message: 'That email is not registered' });
         }
+        if (!user.status) {
+            return done(null, false, { message: "You are not allowed" });
+        }
         const isMatch = yield user.validPassword(password);
         if (isMatch) {
             return done(null, user);

@@ -21,7 +21,8 @@ function createUser(userName, email, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const hashedPassword = yield User_1.default.hashPassword(password);
-            const result = yield (0, db_1.default)("INSERT INTO users (userName, email, password) OUTPUT INSERTED.* VALUES (@userName, @email, @password)", { userName: userName, email: email, password: hashedPassword });
+            const status = true;
+            const result = yield (0, db_1.default)("INSERT INTO users (userName, email, password, status) OUTPUT INSERTED.* VALUES (@userName, @email, @password, @status)", { userName: userName, email: email, password: hashedPassword, status: status });
             if (result && result.length > 0) {
                 return new User_1.default(result[0]);
             }

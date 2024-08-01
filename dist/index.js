@@ -14,14 +14,11 @@ const roleRoutes_1 = __importDefault(require("./routes/roleRoutes"));
 const applicationRoutes_1 = __importDefault(require("./routes/applicationRoutes"));
 const areaRoutes_1 = __importDefault(require("./routes/areaRoutes"));
 const businessUnitRoutes_1 = __importDefault(require("./routes/businessUnitRoutes"));
+const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
+const dataAccessRoutes_1 = __importDefault(require("./routes/dataAccessRoutes"));
 const config_1 = __importDefault(require("./config/config"));
 const app = (0, express_1.default)();
-const corsOptions = {
-    origin: '*', // Adjust this to restrict access if needed
-    optionsSuccessStatus: 200,
-    methods: ['GET', 'POST'], // Ensure GET is listed here
-};
-app.use((0, cors_1.default)(corsOptions));
+app.use((0, cors_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(body_parser_1.default.json());
 app.use(passport_1.default.initialize());
@@ -33,6 +30,8 @@ app.use(`/api/${API_VERSION}`, roleRoutes_1.default);
 app.use(`/api/${API_VERSION}`, applicationRoutes_1.default);
 app.use(`/api/${API_VERSION}`, areaRoutes_1.default);
 app.use(`/api/${API_VERSION}`, businessUnitRoutes_1.default);
+app.use(`/api/${API_VERSION}`, teamRoutes_1.default);
+app.use(`/api/${API_VERSION}`, dataAccessRoutes_1.default);
 const PORT = config_1.default.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 //# sourceMappingURL=index.js.map

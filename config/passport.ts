@@ -12,6 +12,9 @@ passport.use(
       if (!user) {
         return done(null, false, { message: 'That email is not registered' });
       }
+      if (!user.status) {
+        return done(null, false, { message: "You are not allowed" });
+      }
 
       const isMatch = await user.validPassword(password);
       if (isMatch) {

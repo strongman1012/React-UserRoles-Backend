@@ -18,11 +18,12 @@ const db_1 = __importDefault(require("../config/db"));
 const getAllList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { role_id } = req.body;
     try {
-        const result = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, 
+        const result = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
                     applications.name application_name, areas.name area_name 
              FROM application_area_lists as lists 
              LEFT JOIN areas ON lists.area_id = areas.id 
-             LEFT JOIN applications ON areas.application_id = applications.id  
+             LEFT JOIN applications ON areas.application_id = applications.id
+             LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
              WHERE role_id=@role_id`, { role_id });
         res.status(200).json(result);
     }
@@ -34,25 +35,40 @@ const getAllList = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.getAllList = getAllList;
 // Save a new area list or update if it exists
 const saveList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { role_id, area_id, permission } = req.body;
+    const { role_id, area_id, permission, data_access_id } = req.body;
+    const create_data_access_id = 7;
     try {
         // Check if the entry already exists
         const existingEntry = yield (0, db_1.default)("SELECT id FROM application_area_lists WHERE role_id=@role_id AND area_id=@area_id", { role_id, area_id });
         let result;
         if (existingEntry && existingEntry.length > 0) {
-            // Update the existing entry
-            result = yield (0, db_1.default)("UPDATE application_area_lists SET permission=@permission WHERE role_id=@role_id AND area_id=@area_id", { role_id, area_id, permission });
+            // Construct the dynamic update query
+            const fieldsToUpdate = [];
+            const parameters = { role_id, area_id };
+            if (permission !== undefined) {
+                fieldsToUpdate.push("permission=@permission");
+                parameters.permission = permission;
+            }
+            if (data_access_id !== undefined) {
+                fieldsToUpdate.push("data_access_id=@data_access_id");
+                parameters.data_access_id = data_access_id;
+            }
+            if (fieldsToUpdate.length > 0) {
+                const updateQuery = `UPDATE application_area_lists SET ${fieldsToUpdate.join(', ')} WHERE role_id=@role_id AND area_id=@area_id`;
+                result = yield (0, db_1.default)(updateQuery, parameters);
+            }
         }
         else {
             // Insert a new entry
-            result = yield (0, db_1.default)("INSERT INTO application_area_lists (role_id, area_id, permission) VALUES (@role_id, @area_id, @permission)", { role_id, area_id, permission });
+            result = yield (0, db_1.default)("INSERT INTO application_area_lists (role_id, area_id, permission, data_access_id) VALUES (@role_id, @area_id, @permission, @data_access_id)", { role_id, area_id, permission: permission !== undefined ? permission : false, data_access_id: data_access_id !== undefined ? data_access_id : create_data_access_id });
         }
         // Fetch the updated list
-        const updatedResult = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, 
+        const updatedResult = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
                     applications.name application_name, areas.name area_name 
              FROM application_area_lists as lists 
              LEFT JOIN areas ON lists.area_id = areas.id 
-             LEFT JOIN applications ON areas.application_id = applications.id  
+             LEFT JOIN applications ON areas.application_id = applications.id
+             LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
              WHERE role_id=@role_id`, { role_id });
         res.status(200).json(updatedResult);
     }

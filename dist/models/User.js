@@ -15,11 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const db_1 = __importDefault(require("../config/db")); // Import your SQL module
 class User {
-    constructor({ id, userName, email, password }) {
+    constructor({ id, userName, email, password, status }) {
         this.id = id;
         this.userName = userName;
         this.email = email;
         this.password = password;
+        this.status = status;
     }
     validPassword(password) {
         return __awaiter(this, void 0, void 0, function* () {

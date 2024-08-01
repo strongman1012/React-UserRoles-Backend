@@ -12,8 +12,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteBusinessUnit = exports.updateBusinessUnit = exports.createBusinessUnit = exports.getBusinessUnit = exports.getAllBusinessUnits = void 0;
+exports.deleteBusinessUnit = exports.updateBusinessUnit = exports.createBusinessUnit = exports.getBusinessUnit = exports.getAllBusinessUnits = exports.getChildBusinessUnits = void 0;
 const db_1 = __importDefault(require("../config/db"));
+// Get child business units
+const getChildBusinessUnits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    // Check if id is provided and not null
+    if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ message: 'Valid business unit ID is required' });
+    }
+    try {
+        const result = yield (0, db_1.default)('SELECT * FROM business_units WHERE parent_id = @id', { id });
+        res.status(200).json(result);
+    }
+    catch (err) {
+        console.error('Error fetching child business units:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.getChildBusinessUnits = getChildBusinessUnits;
 // Get all business units
 const getAllBusinessUnits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -47,8 +64,9 @@ exports.getBusinessUnit = getBusinessUnit;
 // Create a new business unit
 const createBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
+    const is_root = false;
     try {
-        const result = yield (0, db_1.default)('INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status)', { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status });
+        const result = yield (0, db_1.default)('INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status, @is_root)', { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root });
         if (result && result.length > 0) {
             res.status(201).json({ message: 'Business unit created successfully', businessUnit: result[0] });
         }
@@ -83,18 +101,23 @@ const updateBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, funct
 exports.updateBusinessUnit = updateBusinessUnit;
 // Delete a business unit
 const deleteBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: 'IDs must be an array' });
+    }
     try {
-        const result = yield (0, db_1.default)('DELETE FROM business_units WHERE id = @id', { id });
-        if (result && result.length > 0) {
-            res.status(200).json({ message: 'Business unit deleted successfully' });
+        const placeholders = ids.map((id, index) => `@id${index}`).join(',');
+        const parameters = ids.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`id${index}`]: id })), {});
+        const result = yield (0, db_1.default)(`DELETE FROM business_units WHERE id IN (${placeholders}) AND is_root=0`, parameters);
+        if ((result === null || result === void 0 ? void 0 : result[0]) > 0) {
+            res.status(200).json({ message: 'Business units deleted successfully' });
         }
         else {
-            res.status(404).json({ message: 'Business unit not found' });
+            res.status(404).json({ message: 'Business units not found' });
         }
     }
     catch (err) {
-        console.error('Error deleting business unit:', err);
+        console.error('Error deleting business units:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });

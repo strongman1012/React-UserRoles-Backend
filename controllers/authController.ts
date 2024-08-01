@@ -7,9 +7,10 @@ import sql from '../config/db';
 async function createUser(userName: string, email: string, password: string): Promise<User | null> {
   try {
     const hashedPassword = await User.hashPassword(password);
+    const status = true;
     const result = await sql(
-      "INSERT INTO users (userName, email, password) OUTPUT INSERTED.* VALUES (@userName, @email, @password)",
-      { userName: userName, email: email, password: hashedPassword }
+      "INSERT INTO users (userName, email, password, status) OUTPUT INSERTED.* VALUES (@userName, @email, @password, @status)",
+      { userName: userName, email: email, password: hashedPassword, status: status }
     );
 
     if (result && result.length > 0) {

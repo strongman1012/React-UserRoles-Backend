@@ -1,6 +1,22 @@
 import { Request, Response } from 'express';
 import sql from '../config/db';
 
+// Get area access level
+export const getAreaAccessLevel = async (req: Request, res: Response) => {
+    const { user_role_id, area_name } = req.params;
+    try {
+        const result = await sql('SELECT data_accesses.level FROM application_area_lists as lists LEFT JOIN areas ON lists.area_id = areas.id LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  WHERE role_id = @user_role_id AND areas.name = @area_name', { user_role_id, area_name });
+
+        if (result && result?.length > 0) {
+            res.status(200).json(result[0].level);
+        } else {
+            res.status(404).json({ message: 'Access level not found' });
+        }
+    } catch (err) {
+        console.error('Error fetching access level:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 // Get all roles
 export const getAllRoles = async (req: Request, res: Response) => {
     try {

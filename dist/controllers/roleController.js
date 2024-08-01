@@ -12,8 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteRole = exports.updateRole = exports.createRole = exports.getRole = exports.getAllRoles = void 0;
+exports.deleteRole = exports.updateRole = exports.createRole = exports.getRole = exports.getAllRoles = exports.getAreaAccessLevel = void 0;
 const db_1 = __importDefault(require("../config/db"));
+// Get area access level
+const getAreaAccessLevel = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { user_role_id, area_name } = req.params;
+    try {
+        const result = yield (0, db_1.default)('SELECT data_accesses.level FROM application_area_lists as lists LEFT JOIN areas ON lists.area_id = areas.id LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  WHERE role_id = @user_role_id AND areas.name = @area_name', { user_role_id, area_name });
+        if (result && (result === null || result === void 0 ? void 0 : result.length) > 0) {
+            res.status(200).json(result[0].level);
+        }
+        else {
+            res.status(404).json({ message: 'Access level not found' });
+        }
+    }
+    catch (err) {
+        console.error('Error fetching access level:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.getAreaAccessLevel = getAreaAccessLevel;
 // Get all roles
 const getAllRoles = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {

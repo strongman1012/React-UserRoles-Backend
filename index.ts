@@ -9,15 +9,12 @@ import roleRoutes from './routes/roleRoutes';
 import applicationRoutes from './routes/applicationRoutes';
 import areaRoutes from './routes/areaRoutes';
 import businessUnitRoutes from './routes/businessUnitRoutes';
+import teamRoutes from './routes/teamRoutes';
+import dataAccessRoutes from './routes/dataAccessRoutes';
 import config from './config/config';
 
 const app = express();
-const corsOptions = {
-    origin: '*', // Adjust this to restrict access if needed
-    optionsSuccessStatus: 200,
-    methods: ['GET', 'POST'], // Ensure GET is listed here
-};
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -31,6 +28,8 @@ app.use(`/api/${API_VERSION}`, roleRoutes);
 app.use(`/api/${API_VERSION}`, applicationRoutes);
 app.use(`/api/${API_VERSION}`, areaRoutes);
 app.use(`/api/${API_VERSION}`, businessUnitRoutes);
+app.use(`/api/${API_VERSION}`, teamRoutes);
+app.use(`/api/${API_VERSION}`, dataAccessRoutes);
 
 const PORT = config.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

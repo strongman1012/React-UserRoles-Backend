@@ -1,6 +1,22 @@
 import { Request, Response } from 'express';
 import sql from '../config/db';
 
+// Get child business units
+export const getChildBusinessUnits = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    // Check if id is provided and not null
+    if (!id || isNaN(Number(id))) {
+        return res.status(400).json({ message: 'Valid business unit ID is required' });
+    }
+    try {
+        const result = await sql('SELECT * FROM business_units WHERE parent_id = @id', { id });
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Error fetching child business units:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
 // Get all business units
 export const getAllBusinessUnits = async (req: Request, res: Response) => {
     try {
@@ -33,11 +49,11 @@ export const getBusinessUnit = async (req: Request, res: Response) => {
 // Create a new business unit
 export const createBusinessUnit = async (req: Request, res: Response) => {
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
-
+    const is_root = false;
     try {
         const result = await sql(
-            'INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status)',
-            { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status }
+            'INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status, @is_root)',
+            { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root }
         );
 
         if (result && result.length > 0) {
@@ -75,18 +91,24 @@ export const updateBusinessUnit = async (req: Request, res: Response) => {
 
 // Delete a business unit
 export const deleteBusinessUnit = async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: 'IDs must be an array' });
+    }
 
     try {
-        const result = await sql('DELETE FROM business_units WHERE id = @id', { id });
+        const placeholders = ids.map((id, index) => `@id${index}`).join(',');
+        const parameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id }), {});
+        const result = await sql(`DELETE FROM business_units WHERE id IN (${placeholders}) AND is_root=0`, parameters);
 
-        if (result && result.length > 0) {
-            res.status(200).json({ message: 'Business unit deleted successfully' });
+        if (result?.[0] > 0) {
+            res.status(200).json({ message: 'Business units deleted successfully' });
         } else {
-            res.status(404).json({ message: 'Business unit not found' });
+            res.status(404).json({ message: 'Business units not found' });
         }
     } catch (err) {
-        console.error('Error deleting business unit:', err);
+        console.error('Error deleting business units:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };

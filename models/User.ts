@@ -20,12 +20,14 @@ class User implements UserAttributes {
   public userName!: string;
   public email!: string;
   public password!: string;
+  public status!: boolean | undefined;
 
-  constructor({ id, userName, email, password }: UserAttributes) {
+  constructor({ id, userName, email, password, status }: UserAttributes) {
     this.id = id;
     this.userName = userName;
     this.email = email;
     this.password = password;
+    this.status = status;
   }
 
   public async validPassword(password: string): Promise<boolean> {

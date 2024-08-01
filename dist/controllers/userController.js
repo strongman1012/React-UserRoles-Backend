@@ -12,12 +12,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUser = exports.getUser = exports.getAllUsers = void 0;
+exports.deleteUser = exports.updateUser = exports.createUser = exports.getUser = exports.getAllUsers = void 0;
+const User_1 = __importDefault(require("../models/User"));
 const db_1 = __importDefault(require("../config/db"));
 // Get all users
 const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield (0, db_1.default)("SELECT users.*, roles.name role_name, business_units.name business_name  FROM users LEFT JOIN roles ON users.role_id = roles.id LEFT JOIN business_units ON users.business_unit_id = business_units.id");
+        const result = yield (0, db_1.default)("SELECT users.*, roles.name role_name, business_units.name business_name, teams.name team_name  FROM users LEFT JOIN roles ON users.role_id = roles.id LEFT JOIN business_units ON users.business_unit_id = business_units.id LEFT JOIN teams ON users.team_id = teams.id");
         res.status(200).json(result);
     }
     catch (err) {
@@ -44,10 +45,30 @@ const getUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getUser = getUser;
+// Create a new user
+const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userName, email, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id } = req.body;
+    const password = "12345";
+    const hashedPassword = yield User_1.default.hashPassword(password);
+    try {
+        const result = yield (0, db_1.default)('INSERT INTO users (userName, email, password, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id) VALUES (@userName, @email, @password, @fullName, @role_id, @mobilePhone, @mainPhone, @status, @business_unit_id, @team_id)', { userName, email, password: hashedPassword, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id });
+        if (result && result.length > 0) {
+            res.status(201).json({ message: 'An user created successfully', user: result[0] });
+        }
+        else {
+            res.status(400).json({ message: 'Error creating user' });
+        }
+    }
+    catch (err) {
+        console.error('Error creating user:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.createUser = createUser;
 // Update a user by ID
 const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { userName, email, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id } = req.body;
+    const { userName, email, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id } = req.body;
     try {
         // Construct the SET clause dynamically
         let setClause = '';
@@ -84,6 +105,10 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             setClause += 'business_unit_id=@business_unit_id, ';
             params.business_unit_id = business_unit_id;
         }
+        if (team_id !== undefined) {
+            setClause += 'team_id=@team_id, ';
+            params.team_id = team_id;
+        }
         // Remove the trailing comma and space from the SET clause
         setClause = setClause.slice(0, -2);
         if (!setClause) {
@@ -104,20 +129,25 @@ const updateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.updateUser = updateUser;
-// Delete a user by ID
+// Delete a user by IDs
 const deleteUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: 'IDs must be an array' });
+    }
     try {
-        const result = yield (0, db_1.default)("DELETE FROM users WHERE id=@id", { id });
+        const placeholders = ids.map((id, index) => `@id${index}`).join(',');
+        const parameters = ids.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`id${index}`]: id })), {});
+        const result = yield (0, db_1.default)(`DELETE FROM users WHERE id IN (${placeholders})`, parameters);
         if ((result === null || result === void 0 ? void 0 : result[0]) > 0) {
-            res.status(200).json({ message: 'User deleted successfully' });
+            res.status(200).json({ message: 'Users deleted successfully' });
         }
         else {
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: 'Users not found' });
         }
     }
     catch (err) {
-        console.error('Error deleting user:', err);
+        console.error('Error deleting users:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
