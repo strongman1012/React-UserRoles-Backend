@@ -17,7 +17,7 @@ const db_1 = __importDefault(require("../config/db"));
 // Get all teams
 const getAllTeams = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield (0, db_1.default)('SELECT teams.*, users.userName admin_name, business_units.name business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
+        const result = yield (0, db_1.default)('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
         res.status(200).json(result);
     }
     catch (err) {
@@ -46,11 +46,20 @@ const getTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.getTeam = getTeam;
 // Create a new team
 const createTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, description, business_unit_id, admin_id, is_default } = req.body;
+    const { name, description, business_unit_id, admin_id, is_default, ids } = req.body;
     try {
+        // Insert new team
         const result = yield (0, db_1.default)('INSERT INTO teams (name, description, business_unit_id, admin_id, is_default) VALUES (@name, @description, @business_unit_id, @admin_id, @is_default)', { name, description, business_unit_id, admin_id, is_default });
-        if (result && result.length > 0) {
-            res.status(201).json({ message: 'Team created successfully', team: result[0] });
+        if ((result === null || result === void 0 ? void 0 : result[0]) > 0) {
+            const insertedTeam = yield (0, db_1.default)('SELECT id FROM teams WHERE name=@name AND business_unit_id=@business_unit_id AND admin_id=@admin_id AND is_default=@is_default ORDER BY id DESC LIMIT 1', { name, business_unit_id, admin_id, is_default });
+            const insertedId = insertedTeam === null || insertedTeam === void 0 ? void 0 : insertedTeam[0].id;
+            // Update team_id for users in ids array
+            if (Array.isArray(ids) && ids.length > 0) {
+                const idsPlaceholders = ids.map((_, index) => `@id${index}`).join(',');
+                const idsParameters = ids.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`id${index}`]: id })), {});
+                yield (0, db_1.default)(`UPDATE users SET team_id = @team_id WHERE id IN (${idsPlaceholders})`, Object.assign({ team_id: insertedId }, idsParameters));
+            }
+            res.status(201).json({ message: 'Team created successfully' });
         }
         else {
             res.status(400).json({ message: 'Error creating team' });
@@ -65,10 +74,23 @@ exports.createTeam = createTeam;
 // Update an existing team
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { name, description, business_unit_id, admin_id, is_default } = req.body;
+    const { name, description, business_unit_id, admin_id, is_default, role_id, ids, removeIds } = req.body;
     try {
+        // Update the team details
         const result = yield (0, db_1.default)('UPDATE teams SET name = @name, description = @description, business_unit_id = @business_unit_id, admin_id = @admin_id, is_default = @is_default WHERE id = @id', { id, name, description, business_unit_id, admin_id, is_default });
-        if (result && result.length > 0) {
+        // Update team_id and role_id for users in ids array
+        if (Array.isArray(ids) && ids.length > 0) {
+            const idsPlaceholders = ids.map((_, index) => `@id${index}`).join(',');
+            const idsParameters = ids.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`id${index}`]: id, role_id })), {});
+            yield (0, db_1.default)(`UPDATE users SET team_id = @team_id, role_id = @role_id WHERE id IN (${idsPlaceholders})`, Object.assign({ team_id: id }, idsParameters));
+        }
+        // Set team_id to null for users in removeIds array
+        if (Array.isArray(removeIds) && removeIds.length > 0) {
+            const removeIdsPlaceholders = removeIds.map((_, index) => `@removeId${index}`).join(',');
+            const removeIdsParameters = removeIds.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`removeId${index}`]: id })), {});
+            yield (0, db_1.default)(`UPDATE users SET team_id = NULL WHERE id IN (${removeIdsPlaceholders})`, Object.assign({}, removeIdsParameters));
+        }
+        if ((result === null || result === void 0 ? void 0 : result[0]) > 0) {
             res.status(200).json({ message: 'Team updated successfully' });
         }
         else {

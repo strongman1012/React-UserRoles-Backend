@@ -4,7 +4,7 @@ import sql from '../config/db';
 // Get all teams
 export const getAllTeams = async (req: Request, res: Response) => {
     try {
-        const result = await sql('SELECT teams.*, users.userName admin_name, business_units.name business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
+        const result = await sql('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
         res.status(200).json(result);
     } catch (err) {
         console.error('Error fetching teams:', err);
@@ -32,15 +32,33 @@ export const getTeam = async (req: Request, res: Response) => {
 
 // Create a new team
 export const createTeam = async (req: Request, res: Response) => {
-    const { name, description, business_unit_id, admin_id, is_default } = req.body;
+    const { name, description, business_unit_id, admin_id, is_default, ids } = req.body;
+
     try {
+        // Insert new team
         const result = await sql(
             'INSERT INTO teams (name, description, business_unit_id, admin_id, is_default) VALUES (@name, @description, @business_unit_id, @admin_id, @is_default)',
             { name, description, business_unit_id, admin_id, is_default }
         );
 
-        if (result && result.length > 0) {
-            res.status(201).json({ message: 'Team created successfully', team: result[0] });
+        if (result?.[0] > 0) {
+            const insertedTeam = await sql(
+                'SELECT id FROM teams WHERE name=@name AND business_unit_id=@business_unit_id AND admin_id=@admin_id AND is_default=@is_default ORDER BY id DESC LIMIT 1',
+                { name, business_unit_id, admin_id, is_default }
+            );
+            const insertedId = insertedTeam?.[0].id;
+
+            // Update team_id for users in ids array
+            if (Array.isArray(ids) && ids.length > 0) {
+                const idsPlaceholders = ids.map((_, index) => `@id${index}`).join(',');
+                const idsParameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id }), {});
+                await sql(
+                    `UPDATE users SET team_id = @team_id WHERE id IN (${idsPlaceholders})`,
+                    { team_id: insertedId, ...idsParameters }
+                );
+            }
+
+            res.status(201).json({ message: 'Team created successfully' });
         } else {
             res.status(400).json({ message: 'Error creating team' });
         }
@@ -53,15 +71,36 @@ export const createTeam = async (req: Request, res: Response) => {
 // Update an existing team
 export const updateTeam = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, description, business_unit_id, admin_id, is_default } = req.body;
+    const { name, description, business_unit_id, admin_id, is_default, role_id, ids, removeIds } = req.body;
 
     try {
+        // Update the team details
         const result = await sql(
             'UPDATE teams SET name = @name, description = @description, business_unit_id = @business_unit_id, admin_id = @admin_id, is_default = @is_default WHERE id = @id',
             { id, name, description, business_unit_id, admin_id, is_default }
         );
 
-        if (result && result.length > 0) {
+        // Update team_id and role_id for users in ids array
+        if (Array.isArray(ids) && ids.length > 0) {
+            const idsPlaceholders = ids.map((_, index) => `@id${index}`).join(',');
+            const idsParameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id, role_id }), {});
+            await sql(
+                `UPDATE users SET team_id = @team_id, role_id = @role_id WHERE id IN (${idsPlaceholders})`,
+                { team_id: id, ...idsParameters }
+            );
+        }
+
+        // Set team_id to null for users in removeIds array
+        if (Array.isArray(removeIds) && removeIds.length > 0) {
+            const removeIdsPlaceholders = removeIds.map((_, index) => `@removeId${index}`).join(',');
+            const removeIdsParameters = removeIds.reduce((acc, id, index) => ({ ...acc, [`removeId${index}`]: id }), {});
+            await sql(
+                `UPDATE users SET team_id = NULL WHERE id IN (${removeIdsPlaceholders})`,
+                { ...removeIdsParameters }
+            );
+        }
+
+        if (result?.[0] > 0) {
             res.status(200).json({ message: 'Team updated successfully' });
         } else {
             res.status(404).json({ message: 'Team not found or no changes made' });
