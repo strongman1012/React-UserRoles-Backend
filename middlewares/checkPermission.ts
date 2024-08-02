@@ -27,11 +27,11 @@ export const checkPermission = (area_name: string) => {
 
                     // Get permission
                     const permissionResult = await sql(
-                        'SELECT permission FROM application_area_lists WHERE role_id = @role_id AND area_id = @area_id',
+                        'SELECT permission, level FROM application_area_lists as lists LEFT JOIN data_accesses as access ON lists.data_access_id = access.id  WHERE role_id = @role_id AND area_id = @area_id',
                         { role_id, area_id }
                     );
 
-                    if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission) {
+                    if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission && permissionResult[0].level < 5 && permissionResult[0].level >= 1) {
                         isAuthorized = true;
                     }
                 }

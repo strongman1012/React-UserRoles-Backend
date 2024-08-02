@@ -33,19 +33,16 @@ export const getTeam = async (req: Request, res: Response) => {
 // Create a new team
 export const createTeam = async (req: Request, res: Response) => {
     const { name, description, business_unit_id, admin_id, is_default, ids } = req.body;
-
+    const role_id = null;
     try {
         // Insert new team
         const result = await sql(
-            'INSERT INTO teams (name, description, business_unit_id, admin_id, is_default) VALUES (@name, @description, @business_unit_id, @admin_id, @is_default)',
-            { name, description, business_unit_id, admin_id, is_default }
+            'INSERT INTO teams (name, description, business_unit_id, admin_id, is_default, role_id) VALUES (@name, @description, @business_unit_id, @admin_id, @is_default, @role_id)',
+            { name, description, business_unit_id, admin_id, is_default, role_id }
         );
 
         if (result?.[0] > 0) {
-            const insertedTeam = await sql(
-                'SELECT id FROM teams WHERE name=@name AND business_unit_id=@business_unit_id AND admin_id=@admin_id AND is_default=@is_default ORDER BY id DESC LIMIT 1',
-                { name, business_unit_id, admin_id, is_default }
-            );
+            const insertedTeam = await sql('SELECT id FROM teams ORDER BY id DESC');
             const insertedId = insertedTeam?.[0].id;
 
             // Update team_id for users in ids array
@@ -68,25 +65,52 @@ export const createTeam = async (req: Request, res: Response) => {
     }
 };
 
-// Update an existing team
 export const updateTeam = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, business_unit_id, admin_id, is_default, role_id, ids, removeIds } = req.body;
 
     try {
-        // Update the team details
-        const result = await sql(
-            'UPDATE teams SET name = @name, description = @description, business_unit_id = @business_unit_id, admin_id = @admin_id, is_default = @is_default WHERE id = @id',
-            { id, name, description, business_unit_id, admin_id, is_default }
-        );
+        // Construct the dynamic update query
+        const fieldsToUpdate = [];
+        const parameters: any = { id };
+
+        if (name !== undefined) {
+            fieldsToUpdate.push("name=@name");
+            parameters.name = name;
+        }
+        if (description !== undefined) {
+            fieldsToUpdate.push("description=@description");
+            parameters.description = description;
+        }
+        if (business_unit_id !== undefined) {
+            fieldsToUpdate.push("business_unit_id=@business_unit_id");
+            parameters.business_unit_id = business_unit_id;
+        }
+        if (admin_id !== undefined) {
+            fieldsToUpdate.push("admin_id=@admin_id");
+            parameters.admin_id = admin_id;
+        }
+        if (is_default !== undefined) {
+            fieldsToUpdate.push("is_default=@is_default");
+            parameters.is_default = is_default;
+        }
+        if (role_id !== undefined) {
+            fieldsToUpdate.push("role_id=@role_id");
+            parameters.role_id = role_id;
+        }
+
+        if (fieldsToUpdate.length > 0) {
+            const updateQuery = `UPDATE teams SET ${fieldsToUpdate.join(', ')} WHERE id=@id`;
+            await sql(updateQuery, parameters);
+        }
 
         // Update team_id and role_id for users in ids array
         if (Array.isArray(ids) && ids.length > 0) {
             const idsPlaceholders = ids.map((_, index) => `@id${index}`).join(',');
-            const idsParameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id, role_id }), {});
+            const idsParameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id }), {});
             await sql(
-                `UPDATE users SET team_id = @team_id, role_id = @role_id WHERE id IN (${idsPlaceholders})`,
-                { team_id: id, ...idsParameters }
+                `UPDATE users SET team_id = @team_id${role_id !== undefined ? ', role_id = @role_id' : ''} WHERE id IN (${idsPlaceholders})`,
+                { team_id: id, ...(role_id !== undefined && { role_id }), ...idsParameters }
             );
         }
 
@@ -100,11 +124,7 @@ export const updateTeam = async (req: Request, res: Response) => {
             );
         }
 
-        if (result?.[0] > 0) {
-            res.status(200).json({ message: 'Team updated successfully' });
-        } else {
-            res.status(404).json({ message: 'Team not found or no changes made' });
-        }
+        res.status(200).json({ message: 'Team updated successfully' });
     } catch (err) {
         console.error('Error updating team:', err);
         res.status(500).json({ message: 'Server error' });
