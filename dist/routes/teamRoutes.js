@@ -9,6 +9,6 @@ router.get('/teams', authenticate_1.checkJwt, teamController_1.getAllTeams);
 router.get('/teams/:id', authenticate_1.checkJwt, teamController_1.getTeam);
 router.post('/teams', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Teams'), teamController_1.createTeam);
 router.put('/teams/:id', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Teams'), teamController_1.updateTeam);
-router.delete('/teams', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Teams'), teamController_1.deleteTeam);
+router.delete('/teams', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Teams'), teamController_1.deleteTeams);
 exports.default = router;
 //# sourceMappingURL=teamRoutes.js.map

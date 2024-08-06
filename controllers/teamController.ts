@@ -1,11 +1,54 @@
 import { Request, Response } from 'express';
 import sql from '../config/db';
+import { Team } from '../config/types';
+import { getAreaAccessLevel } from './dataAccessController';
+import { getChildBusinessUnits } from './businessUnitController';
 
 // Get all teams
 export const getAllTeams = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
-        const result = await sql('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
-        res.status(200).json(result);
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Teams");
+        const teams = await sql('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
+
+        if (!teams)
+            return res.status(400).json({ message: 'Invalid teams' });
+
+        let result: Team[];
+        let editable: boolean;
+
+        if (userAccessLevel === 1) {
+            result = teams;
+            editable = true;
+        }
+        else if (userAccessLevel === 2) {
+            const childBusinessUnits = await getChildBusinessUnits(auth.business_unit_id);
+            const parentData = teams.filter(team => { return team.business_unit_id === auth.business_unit_id });
+            let childrenData: Team[] = [];
+            childBusinessUnits?.forEach(child => {
+                const teamsInChildBusinessUnit = teams.filter(team => { return team.business_unit_id === child.id });
+                childrenData = childrenData.concat(teamsInChildBusinessUnit);
+            });
+            result = parentData.concat(childrenData);
+            editable = true;
+        }
+        else if (userAccessLevel === 3) {
+            result = teams.filter(team => { return team.business_unit_id === auth.business_unit_id });
+            editable = true;
+        }
+        else if (userAccessLevel === 4) {
+            result = teams.filter(team => { return team.id === auth.team_id });
+            editable = true;
+        }
+        else if (userAccessLevel === 5) {
+            result = teams.filter(team => { return team.id === auth.team_id });
+            editable = false;
+        }
+        else {
+            return res.status(400).json({ message: 'Invalid access level' });
+        }
+        res.status(200).json({ result: result, editable: editable });
     } catch (err) {
         console.error('Error fetching teams:', err);
         res.status(500).json({ message: 'Server error' });
@@ -15,12 +58,19 @@ export const getAllTeams = async (req: Request, res: Response) => {
 // Get a specific team by ID
 export const getTeam = async (req: Request, res: Response) => {
     const { id } = req.params;
-
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Teams");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM teams WHERE id = @id', { id });
 
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         } else {
             res.status(404).json({ message: 'Team not found' });
         }
@@ -34,6 +84,15 @@ export const getTeam = async (req: Request, res: Response) => {
 export const createTeam = async (req: Request, res: Response) => {
     const { name, description, business_unit_id, admin_id, is_default, ids } = req.body;
     const role_id = null;
+    if (!name) {
+        return res.status(400).json({ message: "Team name is required." });
+    }
+    if (!business_unit_id) {
+        return res.status(400).json({ message: "Business unit is required." });
+    }
+    if (!admin_id) {
+        return res.status(400).json({ message: "Team administrator is required." });
+    }
     try {
         // Insert new team
         const result = await sql(
@@ -69,6 +128,15 @@ export const updateTeam = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, business_unit_id, admin_id, is_default, role_id, ids, removeIds } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Team name is required." });
+    }
+    if (!business_unit_id) {
+        return res.status(400).json({ message: "Business unit is required." });
+    }
+    if (!admin_id) {
+        return res.status(400).json({ message: "Team administrator is required." });
+    }
     try {
         // Construct the dynamic update query
         const fieldsToUpdate = [];
@@ -131,8 +199,8 @@ export const updateTeam = async (req: Request, res: Response) => {
     }
 };
 
-// Delete a team
-export const deleteTeam = async (req: Request, res: Response) => {
+// Delete a teams
+export const deleteTeams = async (req: Request, res: Response) => {
     const { ids } = req.body;
 
     if (!Array.isArray(ids)) {

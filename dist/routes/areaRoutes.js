@@ -7,8 +7,8 @@ const checkPermission_1 = require("../middlewares/checkPermission");
 const router = (0, express_1.Router)();
 router.get('/areas', authenticate_1.checkJwt, areaController_1.getAllAreas);
 router.get('/areas/:id', authenticate_1.checkJwt, areaController_1.getArea);
-router.post('/areas', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Security Roles'), areaController_1.createArea);
-router.put('/areas/:id', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Security Roles'), areaController_1.updateArea);
-router.delete('/areas/:id', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Security Roles'), areaController_1.deleteArea);
+router.post('/areas', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Areas'), areaController_1.createArea);
+router.put('/areas/:id', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Areas'), areaController_1.updateArea);
+router.delete('/areas', authenticate_1.checkJwt, (0, checkPermission_1.checkPermission)('Areas'), areaController_1.deleteAreas);
 exports.default = router;
 //# sourceMappingURL=areaRoutes.js.map

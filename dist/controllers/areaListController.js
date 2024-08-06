@@ -12,19 +12,32 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveList = exports.getAllList = void 0;
+exports.saveList = exports.getSelectedAreas = exports.getUserAreas = void 0;
+const dataAccessController_1 = require("./dataAccessController");
 const db_1 = __importDefault(require("../config/db"));
-// Get all area lists for a given role
-const getAllList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { role_id } = req.body;
+// GetUsersAreas for a given role
+const getUserAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { role_id } = req.params;
     try {
-        const result = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
-                    applications.name application_name, areas.name area_name 
-             FROM application_area_lists as lists 
-             LEFT JOIN areas ON lists.area_id = areas.id 
-             LEFT JOIN applications ON areas.application_id = applications.id
-             LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
-             WHERE role_id=@role_id`, { role_id });
+        // Fetch applications
+        const applications = (yield (0, db_1.default)(`SELECT * FROM applications`)) || [];
+        // Fetch application area lists
+        const areaLists = (yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
+              applications.name application_name, areas.name area_name, level
+                FROM application_area_lists as lists 
+                LEFT JOIN areas ON lists.area_id = areas.id 
+                LEFT JOIN applications ON areas.application_id = applications.id
+                LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
+                WHERE role_id=@role_id AND permission=1 ORDER BY area_id`, { role_id })) || [];
+        // Group results by application_name
+        const result = applications.map(application => {
+            const applicationData = areaLists.filter(item => item.application_name === application.name);
+            return {
+                application_name: application.name,
+                application_id: application.id,
+                data: applicationData
+            };
+        });
         res.status(200).json(result);
     }
     catch (err) {
@@ -32,7 +45,59 @@ const getAllList = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         res.status(500).json({ message: 'Server error' });
     }
 });
-exports.getAllList = getAllList;
+exports.getUserAreas = getUserAreas;
+// getSelectedAreas for a given role
+const getSelectedAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { role_id } = req.params;
+    const tokenData = req.user;
+    const auth = tokenData.user;
+    try {
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Security Roles");
+        let editable;
+        if (userAccessLevel === 1)
+            editable = true;
+        else
+            editable = false;
+        // Fetch applications
+        const applications = (yield (0, db_1.default)(`SELECT * FROM applications`)) || [];
+        // Fetch application area lists
+        const areaLists = (yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
+              applications.name application_name, areas.name area_name, level 
+                FROM application_area_lists as lists 
+                LEFT JOIN areas ON lists.area_id = areas.id 
+                LEFT JOIN applications ON areas.application_id = applications.id
+                LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
+                WHERE role_id=@role_id`, { role_id })) || [];
+        // Group results by application_name
+        const result = applications.map(application => {
+            const applicationData = areaLists.filter(item => item.application_name === application.name).map(item => {
+                if (item.area_name === "Security Roles") {
+                    if (item.level === 1)
+                        return Object.assign(Object.assign({}, item), { read: true, create: true, update: true, delete: true });
+                    else
+                        return Object.assign(Object.assign({}, item), { read: true, create: false, update: false, delete: false });
+                }
+                else {
+                    if (item.level !== 5)
+                        return Object.assign(Object.assign({}, item), { read: true, create: true, update: true, delete: true });
+                    else
+                        return Object.assign(Object.assign({}, item), { read: true, create: false, update: false, delete: false });
+                }
+            });
+            return {
+                application_name: application.name,
+                application_id: application.id,
+                data: applicationData
+            };
+        });
+        res.status(200).json({ result: result, editable: editable });
+    }
+    catch (err) {
+        console.error('Error fetching area lists:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+exports.getSelectedAreas = getSelectedAreas;
 // Save a new area list or update if it exists
 const saveList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { role_id, area_id, permission, data_access_id } = req.body;
@@ -62,15 +127,40 @@ const saveList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             // Insert a new entry
             result = yield (0, db_1.default)("INSERT INTO application_area_lists (role_id, area_id, permission, data_access_id) VALUES (@role_id, @area_id, @permission, @data_access_id)", { role_id, area_id, permission: permission !== undefined ? permission : false, data_access_id: data_access_id !== undefined ? data_access_id : create_data_access_id });
         }
-        // Fetch the updated list
-        const updatedResult = yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
-                    applications.name application_name, areas.name area_name 
-             FROM application_area_lists as lists 
-             LEFT JOIN areas ON lists.area_id = areas.id 
-             LEFT JOIN applications ON areas.application_id = applications.id
-             LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
-             WHERE role_id=@role_id`, { role_id });
-        res.status(200).json(updatedResult);
+        if (result && result.length > 0) { // Fetch applications
+            const applications = (yield (0, db_1.default)(`SELECT * FROM applications`)) || [];
+            // Fetch application area lists
+            const areaLists = (yield (0, db_1.default)(`SELECT lists.id id, role_id, area_id, permission, data_access_id,
+              applications.name application_name, areas.name area_name, level 
+                FROM application_area_lists as lists 
+                LEFT JOIN areas ON lists.area_id = areas.id 
+                LEFT JOIN applications ON areas.application_id = applications.id
+                LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  
+                WHERE role_id=@role_id`, { role_id })) || [];
+            // Group results by application_name
+            const updatedResult = applications.map(application => {
+                const applicationData = areaLists.filter(item => item.application_name === application.name).map(item => {
+                    if (item.area_name === "Security Roles") {
+                        if (item.level === 1)
+                            return Object.assign(Object.assign({}, item), { read: true, create: true, update: true, delete: true });
+                        else
+                            return Object.assign(Object.assign({}, item), { read: true, create: false, update: false, delete: false });
+                    }
+                    else {
+                        if (item.level !== 5)
+                            return Object.assign(Object.assign({}, item), { read: true, create: true, update: true, delete: true });
+                        else
+                            return Object.assign(Object.assign({}, item), { read: true, create: false, update: false, delete: false });
+                    }
+                });
+                return {
+                    application_name: application.name,
+                    application_id: application.id,
+                    data: applicationData
+                };
+            });
+            res.status(200).json(updatedResult);
+        }
     }
     catch (err) {
         console.error('Error saving area list:', err);

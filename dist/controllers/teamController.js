@@ -12,13 +12,52 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTeam = exports.updateTeam = exports.createTeam = exports.getTeam = exports.getAllTeams = void 0;
+exports.deleteTeams = exports.updateTeam = exports.createTeam = exports.getTeam = exports.getAllTeams = void 0;
 const db_1 = __importDefault(require("../config/db"));
+const dataAccessController_1 = require("./dataAccessController");
+const businessUnitController_1 = require("./businessUnitController");
 // Get all teams
 const getAllTeams = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
-        const result = yield (0, db_1.default)('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
-        res.status(200).json(result);
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Teams");
+        const teams = yield (0, db_1.default)('SELECT teams.*, users.userName AS admin_name, business_units.name AS business_name FROM teams LEFT JOIN users ON teams.admin_id = users.id LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
+        if (!teams)
+            return res.status(400).json({ message: 'Invalid teams' });
+        let result;
+        let editable;
+        if (userAccessLevel === 1) {
+            result = teams;
+            editable = true;
+        }
+        else if (userAccessLevel === 2) {
+            const childBusinessUnits = yield (0, businessUnitController_1.getChildBusinessUnits)(auth.business_unit_id);
+            const parentData = teams.filter(team => { return team.business_unit_id === auth.business_unit_id; });
+            let childrenData = [];
+            childBusinessUnits === null || childBusinessUnits === void 0 ? void 0 : childBusinessUnits.forEach(child => {
+                const teamsInChildBusinessUnit = teams.filter(team => { return team.business_unit_id === child.id; });
+                childrenData = childrenData.concat(teamsInChildBusinessUnit);
+            });
+            result = parentData.concat(childrenData);
+            editable = true;
+        }
+        else if (userAccessLevel === 3) {
+            result = teams.filter(team => { return team.business_unit_id === auth.business_unit_id; });
+            editable = true;
+        }
+        else if (userAccessLevel === 4) {
+            result = teams.filter(team => { return team.id === auth.team_id; });
+            editable = true;
+        }
+        else if (userAccessLevel === 5) {
+            result = teams.filter(team => { return team.id === auth.team_id; });
+            editable = false;
+        }
+        else {
+            return res.status(400).json({ message: 'Invalid access level' });
+        }
+        res.status(200).json({ result: result, editable: editable });
     }
     catch (err) {
         console.error('Error fetching teams:', err);
@@ -29,10 +68,18 @@ exports.getAllTeams = getAllTeams;
 // Get a specific team by ID
 const getTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Teams");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM teams WHERE id = @id', { id });
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         }
         else {
             res.status(404).json({ message: 'Team not found' });
@@ -48,6 +95,15 @@ exports.getTeam = getTeam;
 const createTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, description, business_unit_id, admin_id, is_default, ids } = req.body;
     const role_id = null;
+    if (!name) {
+        return res.status(400).json({ message: "Team name is required." });
+    }
+    if (!business_unit_id) {
+        return res.status(400).json({ message: "Business unit is required." });
+    }
+    if (!admin_id) {
+        return res.status(400).json({ message: "Team administrator is required." });
+    }
     try {
         // Insert new team
         const result = yield (0, db_1.default)('INSERT INTO teams (name, description, business_unit_id, admin_id, is_default, role_id) VALUES (@name, @description, @business_unit_id, @admin_id, @is_default, @role_id)', { name, description, business_unit_id, admin_id, is_default, role_id });
@@ -75,6 +131,15 @@ exports.createTeam = createTeam;
 const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const { name, description, business_unit_id, admin_id, is_default, role_id, ids, removeIds } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Team name is required." });
+    }
+    if (!business_unit_id) {
+        return res.status(400).json({ message: "Business unit is required." });
+    }
+    if (!admin_id) {
+        return res.status(400).json({ message: "Team administrator is required." });
+    }
     try {
         // Construct the dynamic update query
         const fieldsToUpdate = [];
@@ -127,8 +192,8 @@ const updateTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.updateTeam = updateTeam;
-// Delete a team
-const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+// Delete a teams
+const deleteTeams = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
         return res.status(400).json({ message: 'IDs must be an array' });
@@ -149,5 +214,5 @@ const deleteTeam = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         res.status(500).json({ message: 'Server error' });
     }
 });
-exports.deleteTeam = deleteTeam;
+exports.deleteTeams = deleteTeams;
 //# sourceMappingURL=teamController.js.map

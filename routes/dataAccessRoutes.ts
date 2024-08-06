@@ -7,8 +7,8 @@ const router = Router();
 
 router.get('/dataAccesses', checkJwt, getAllDataAccess);
 router.get('/dataAccesses/:id', checkJwt, getDataAccess);
-router.post('/dataAccesses', checkJwt, checkPermission('Data Access'), createDataAccess);
-router.put('/dataAccesses/:id', checkJwt, checkPermission('Data Access'), updateDataAccess);
-router.delete('/dataAccesses', checkJwt, checkPermission('Data Access'), deleteDataAccess);
+router.post('/dataAccesses', checkJwt, checkPermission('Data Accesses'), createDataAccess);
+router.put('/dataAccesses/:id', checkJwt, checkPermission('Data Accesses'), updateDataAccess);
+router.delete('/dataAccesses', checkJwt, checkPermission('Data Accesses'), deleteDataAccess);
 
 export default router;

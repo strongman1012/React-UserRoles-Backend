@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { getAllList, saveList } from '../controllers/areaListController';
+import { getUserAreas, getSelectedAreas, saveList } from '../controllers/areaListController';
 import { checkJwt } from '../middlewares/authenticate';
 import { checkPermission } from '../middlewares/checkPermission';
 
 const router = Router();
 
-router.post('/areaList/getAll', checkJwt, getAllList);
+router.get('/areaList/getUserAreas/:role_id', checkJwt, getUserAreas);
+router.get('/areaList/getSelectedAreas/:role_id', checkJwt, getSelectedAreas);
 router.post('/areaList/save', checkJwt, checkPermission('Security Roles'), saveList);
 
 export default router;

@@ -1,27 +1,21 @@
 import { Request, Response } from 'express';
+import { getAreaAccessLevel } from './dataAccessController';
 import sql from '../config/db';
 
-// Get area access level
-export const getAreaAccessLevel = async (req: Request, res: Response) => {
-    const { user_role_id, area_name } = req.params;
-    try {
-        const result = await sql('SELECT data_accesses.level FROM application_area_lists as lists LEFT JOIN areas ON lists.area_id = areas.id LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id  WHERE role_id = @user_role_id AND areas.name = @area_name', { user_role_id, area_name });
 
-        if (result && result?.length > 0) {
-            res.status(200).json(result[0].level);
-        } else {
-            res.status(404).json({ message: 'Access level not found' });
-        }
-    } catch (err) {
-        console.error('Error fetching access level:', err);
-        res.status(500).json({ message: 'Server error' });
-    }
-};
 // Get all roles
 export const getAllRoles = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Roles");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM roles');
-        res.status(200).json(result);
+        res.status(200).json({ result: result, editable: editable });
     } catch (err) {
         console.error('Error fetching roles:', err);
         res.status(500).json({ message: 'Server error' });
@@ -31,12 +25,19 @@ export const getAllRoles = async (req: Request, res: Response) => {
 // Get a specific role by ID
 export const getRole = async (req: Request, res: Response) => {
     const { id } = req.params;
-
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Roles");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM roles WHERE id = @id', { id });
 
-        if (result && result?.length > 0) {
-            res.status(200).json(result[0]);
+        if (result && result.length > 0) {
+            res.status(200).json({ result: result[0], editable: editable });
         } else {
             res.status(404).json({ message: 'Role not found' });
         }
@@ -50,10 +51,13 @@ export const getRole = async (req: Request, res: Response) => {
 export const createRole = async (req: Request, res: Response) => {
     const { name } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Role name is required." });
+    }
     try {
         const result = await sql('INSERT INTO roles (name) VALUES (@name)', { name });
 
-        if (result && result?.[0] > 0) {
+        if (result && result.length > 0) {
             res.status(201).json({ message: 'Role created successfully', role: result[0] });
         } else {
             res.status(400).json({ message: 'Error creating role' });
@@ -69,10 +73,13 @@ export const updateRole = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Role name is required." });
+    }
     try {
         const result = await sql('UPDATE roles SET name = @name WHERE id = @id', { id, name });
 
-        if (result?.[0] > 0) {
+        if (result && result.length > 0) {
             res.status(200).json({ message: 'Role updated successfully' });
         } else {
             res.status(404).json({ message: 'Role not found or no changes made' });
@@ -83,20 +90,26 @@ export const updateRole = async (req: Request, res: Response) => {
     }
 };
 
-// Delete a role
-export const deleteRole = async (req: Request, res: Response) => {
-    const { id } = req.params;
+// Delete roles
+export const deleteRoles = async (req: Request, res: Response) => {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: 'IDs must be an array' });
+    }
 
     try {
-        const result = await sql('DELETE FROM roles WHERE id = @id', { id });
+        const placeholders = ids.map((id, index) => `@id${index}`).join(',');
+        const parameters = ids.reduce((acc, id, index) => ({ ...acc, [`id${index}`]: id }), {});
+        const result = await sql(`DELETE FROM roles WHERE id IN (${placeholders})`, parameters);
 
         if (result?.[0] > 0) {
-            res.status(200).json({ message: 'Role deleted successfully' });
+            res.status(200).json({ message: 'Roles deleted successfully' });
         } else {
-            res.status(404).json({ message: 'Role not found' });
+            res.status(404).json({ message: 'Roles not found' });
         }
     } catch (err) {
-        console.error('Error deleting role:', err);
+        console.error('Error deleting roles:', err);
         res.status(500).json({ message: 'Server error' });
     }
 };

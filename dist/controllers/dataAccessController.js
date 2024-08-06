@@ -12,13 +12,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteDataAccess = exports.updateDataAccess = exports.createDataAccess = exports.getDataAccess = exports.getAllDataAccess = void 0;
+exports.deleteDataAccess = exports.updateDataAccess = exports.createDataAccess = exports.getDataAccess = exports.getAllDataAccess = exports.getAreaAccessLevel = void 0;
 const db_1 = __importDefault(require("../config/db"));
+// Get area access level
+const getAreaAccessLevel = (user_role_id, area_name) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield (0, db_1.default)('SELECT data_accesses.level FROM application_area_lists as lists LEFT JOIN areas ON lists.area_id = areas.id LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id WHERE role_id = @user_role_id AND areas.name = @area_name', { user_role_id, area_name });
+    if (result && result.length > 0)
+        return result[0].level;
+    else
+        return 0;
+});
+exports.getAreaAccessLevel = getAreaAccessLevel;
 // Get all data access records
 const getAllDataAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, exports.getAreaAccessLevel)(auth.role_id, "Data Accesses");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM data_accesses');
-        res.status(200).json(result);
+        res.status(200).json({ result: result, editable: editable });
     }
     catch (err) {
         console.error('Error fetching data access records:', err);
@@ -29,10 +46,18 @@ exports.getAllDataAccess = getAllDataAccess;
 // Get a specific data access record by ID
 const getDataAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, exports.getAreaAccessLevel)(auth.role_id, "Data Accesses");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM data_accesses WHERE id = @id', { id });
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         }
         else {
             res.status(404).json({ message: 'Data access record not found' });
@@ -47,6 +72,12 @@ exports.getDataAccess = getDataAccess;
 // Create a new data access record
 const createDataAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, level } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Data Access name is required." });
+    }
+    if (!level) {
+        return res.status(400).json({ message: "Data Access level is required." });
+    }
     try {
         const result = yield (0, db_1.default)('INSERT INTO data_accesses (name, level) VALUES (@name, @level)', { name, level });
         if (result) {
@@ -66,6 +97,12 @@ exports.createDataAccess = createDataAccess;
 const updateDataAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const { name, level } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Data Access name is required." });
+    }
+    if (!level) {
+        return res.status(400).json({ message: "Data Access level is required." });
+    }
     try {
         const result = yield (0, db_1.default)('UPDATE data_accesses SET name = @name, level = @level WHERE id = @id', { id, name, level });
         if (result) {

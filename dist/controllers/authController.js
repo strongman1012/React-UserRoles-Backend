@@ -22,9 +22,9 @@ function createUser(userName, email, password) {
         try {
             const hashedPassword = yield User_1.default.hashPassword(password);
             const status = true;
-            const result = yield (0, db_1.default)("INSERT INTO users (userName, email, password, status) OUTPUT INSERTED.* VALUES (@userName, @email, @password, @status)", { userName: userName, email: email, password: hashedPassword, status: status });
+            const result = yield (0, db_1.default)("INSERT INTO users (userName, email, password, status) OUTPUT INSERTED.* VALUES (@userName, @email, @password, @status)", { userName, email, password: hashedPassword, status });
             if (result && result.length > 0) {
-                return new User_1.default(result[0]);
+                return result[0];
             }
             return null;
         }
@@ -35,9 +35,16 @@ function createUser(userName, email, password) {
     });
 }
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const userName = req.body.userName;
-    const email = req.body.email;
-    const password = req.body.password;
+    const { userName, email, password } = req.body;
+    if (!userName) {
+        return res.status(400).json({ message: "Username is required" });
+    }
+    if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+    }
+    if (!password) {
+        return res.status(400).json({ message: "Password is required" });
+    }
     try {
         const existingUser = yield User_1.default.findByEmail(email);
         if (existingUser) {
@@ -57,8 +64,8 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.user; // Correctly type the user
-    const result = yield (0, db_1.default)("SELECT * FROM users WHERE email=@email", { email: user.email });
-    if (!result) {
+    const result = yield (0, db_1.default)("SELECT * FROM users WHERE email=@user", { user: user.email });
+    if (!result || result.length === 0) {
         return res.status(400).json({ message: "User not found" });
     }
     const token = (0, jwt_1.generateToken)(result[0]);
@@ -67,8 +74,8 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.login = login;
 const azureAdLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const user = req.user; // Correctly type the user
-    const result = yield (0, db_1.default)("SELECT * FROM users WHERE email=@email", { email: user.email });
-    if (!result) {
+    const result = yield (0, db_1.default)("SELECT * FROM users WHERE email=@user", { user: user.email });
+    if (!result || result.length === 0) {
         return res.status(400).json({ message: "User not found" });
     }
     const token = (0, jwt_1.generateToken)(result[0]);

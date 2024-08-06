@@ -1,27 +1,51 @@
 import { Request, Response } from 'express';
 import sql from '../config/db';
+import { BusinessUnit } from '../config/types';
+import { getAreaAccessLevel } from './dataAccessController';
 
 // Get child business units
-export const getChildBusinessUnits = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    // Check if id is provided and not null
-    if (!id || isNaN(Number(id))) {
-        return res.status(400).json({ message: 'Valid business unit ID is required' });
-    }
-    try {
-        const result = await sql('SELECT * FROM business_units WHERE parent_id = @id', { id });
-        res.status(200).json(result);
-    } catch (err) {
-        console.error('Error fetching child business units:', err);
-        res.status(500).json({ message: 'Server error' });
-    }
+export const getChildBusinessUnits = async (parent_id: number) => {
+    const result = await sql('SELECT * FROM business_units WHERE parent_id = @parent_id', { parent_id });
+    return result;
 };
 
 // Get all business units
 export const getAllBusinessUnits = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
-        const result = await sql('SELECT business_1.*, business_2.name parent_name FROM business_units business_1 LEFT JOIN business_units business_2 on business_1.parent_id = business_2.id');
-        res.status(200).json(result);
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Business Units");
+        const businessUnits = await sql('SELECT business_1.*, business_2.name parent_name FROM business_units business_1 LEFT JOIN business_units business_2 on business_1.parent_id = business_2.id');
+
+        if (!businessUnits)
+            return res.status(400).json({ message: 'Invalid businessUnits' });
+
+        let result: BusinessUnit[];
+        let editable: boolean;
+
+        if (userAccessLevel === 1) {
+            result = businessUnits;
+            editable = true;
+        }
+        else if (userAccessLevel === 2) {
+            const parentBusinessUnit = businessUnits.filter(business => business.id === auth.business_unit_id);
+            const childBusinessUnit = businessUnits.filter(business => business.parent_id === auth.business_unit_id);
+            result = parentBusinessUnit.concat(childBusinessUnit);
+            editable = true;
+        }
+        else if (userAccessLevel === 3 || userAccessLevel === 4) {
+            result = businessUnits.filter(business => { return business.id === auth.business_unit_id });
+            editable = true;
+        }
+        else if (userAccessLevel === 5) {
+            result = businessUnits.filter(business => { return business.id === auth.business_unit_id });
+            editable = false;
+        }
+        else {
+            return res.status(400).json({ message: 'Invalid access level' });
+        }
+
+        res.status(200).json({ result: result, editable: editable });
     } catch (err) {
         console.error('Error fetching business units:', err);
         res.status(500).json({ message: 'Server error' });
@@ -31,12 +55,19 @@ export const getAllBusinessUnits = async (req: Request, res: Response) => {
 // Get a specific business unit by ID
 export const getBusinessUnit = async (req: Request, res: Response) => {
     const { id } = req.params;
-
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Business Units");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM business_units WHERE id = @id', { id });
 
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         } else {
             res.status(404).json({ message: 'Business unit not found' });
         }
@@ -50,6 +81,12 @@ export const getBusinessUnit = async (req: Request, res: Response) => {
 export const createBusinessUnit = async (req: Request, res: Response) => {
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
     const is_root = false;
+    if (!name) {
+        return res.status(400).json({ message: "Business unit name is required" });
+    }
+    if (!email) {
+        return res.status(400).json({ message: "Business unit email is required" });
+    }
     try {
         const result = await sql(
             'INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status, @is_root)',
@@ -72,6 +109,12 @@ export const updateBusinessUnit = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Business unit name is required" });
+    }
+    if (!email) {
+        return res.status(400).json({ message: "Business unit email is required" });
+    }
     try {
         const result = await sql(
             'UPDATE business_units SET name = @name, parent_id = @parent_id, website = @website, mainPhone = @mainPhone, otherPhone = @otherPhone, fax = @fax, email = @email, street1 = @street1, street2 = @street2, street3 = @street3, city = @city, state = @state, zipCode = @zipCode, region = @region, status = @status WHERE id = @id',
@@ -90,7 +133,7 @@ export const updateBusinessUnit = async (req: Request, res: Response) => {
 };
 
 // Delete a business unit
-export const deleteBusinessUnit = async (req: Request, res: Response) => {
+export const deleteBusinessUnits = async (req: Request, res: Response) => {
     const { ids } = req.body;
 
     if (!Array.isArray(ids)) {

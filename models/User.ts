@@ -1,19 +1,6 @@
 import bcrypt from 'bcryptjs';
 import sql from '../config/db'; // Import your SQL module
-
-interface UserAttributes {
-  id: number;
-  userName: string;
-  email: string;
-  password: string;
-  mobilePhone?: string;
-  mainPhone?: string;
-  status?: boolean;
-  photo?: string;
-  role_id?: number;
-  business_unit_id?: number;
-  team_id?: number;
-}
+import { UserAttributes } from '../config/types';
 
 class User implements UserAttributes {
   public id!: number;

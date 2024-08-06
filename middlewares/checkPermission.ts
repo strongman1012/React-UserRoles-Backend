@@ -3,8 +3,9 @@ import sql from '../config/db';
 
 export const checkPermission = (area_name: string) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-        const { user_role_id } = req.body;
-        const role_id = user_role_id;
+        const tokenData: any = req.user;
+        const auth = tokenData.user;
+        const role_id = auth.role_id;
         try {
             // Get role name
             const roleResult = await sql('SELECT name FROM roles WHERE id = @role_id', { role_id });

@@ -1,13 +1,60 @@
 import { Request, Response } from 'express';
 import User from '../models/User';
 import sql from '../config/db';
+import { UserAttributes } from '../config/types';
+import { getAreaAccessLevel } from './dataAccessController';
+import { getChildBusinessUnits } from './businessUnitController';
 
 // Get all users
 export const getAllUsers = async (req: Request, res: Response) => {
+  const tokenData: any = req.user;
+  const auth = tokenData.user;
   try {
-    const result = await sql("SELECT users.*, roles.name role_name, business_units.name business_name, teams.name team_name  FROM users LEFT JOIN roles ON users.role_id = roles.id LEFT JOIN business_units ON users.business_unit_id = business_units.id LEFT JOIN teams ON users.team_id = teams.id");
+    const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Users");
+    const users = await sql("SELECT users.*, roles.name role_name, business_units.name business_name, teams.name team_name FROM users LEFT JOIN roles ON users.role_id = roles.id LEFT JOIN business_units ON users.business_unit_id = business_units.id LEFT JOIN teams ON users.team_id = teams.id");
 
-    res.status(200).json(result);
+    if (!users)
+      return res.status(400).json({ message: 'Invalid users' });
+
+    let result: UserAttributes[];
+    let editable: boolean;
+
+    if (userAccessLevel === 1) {
+      result = users;
+      editable = true;
+    }
+    else if (userAccessLevel === 2) {
+      const childBusinessUnits = await getChildBusinessUnits(auth.business_unit_id);
+      const usersInParentBusinessUnit = users.filter(user => user.business_unit_id === auth.business_unit_id);
+      let usersInChildBusinessUnits: UserAttributes[] = [];
+
+      childBusinessUnits?.forEach(child => {
+        const childBusinessUnitUsers = users.filter(user => user.business_unit_id === child.id);
+        usersInChildBusinessUnits = usersInChildBusinessUnits.concat(childBusinessUnitUsers);
+      });
+      const totalUsersInBusinessUnit = usersInParentBusinessUnit.concat(usersInChildBusinessUnits);
+      const teamIds = Array.from(new Set(totalUsersInBusinessUnit.map(user => user.team_id)));
+      result = users.filter(user => teamIds.includes(user.team_id));
+      editable = true;
+    }
+    else if (userAccessLevel === 3) {
+      const usersInBusinessUnit = users.filter(user => user.business_unit_id === auth.business_unit_id);
+      const teamIds = Array.from(new Set(usersInBusinessUnit.map(user => user.team_id)));
+      result = users.filter(user => teamIds.includes(user.team_id));
+      editable = true;
+    }
+    else if (userAccessLevel === 4) {
+      result = users.filter(user => { return user.team_id === auth.team_id });
+      editable = true;
+    }
+    else if (userAccessLevel === 5) {
+      result = users.filter(user => { return user.id === auth.id });
+      editable = false;
+    } else {
+      return res.status(400).json({ message: 'Invalid access level' });
+    }
+
+    res.status(200).json({ result: result, editable: editable });
   } catch (err) {
     console.error('Error fetching users:', err);
     res.status(500).json({ message: 'Server error' });
@@ -17,10 +64,18 @@ export const getAllUsers = async (req: Request, res: Response) => {
 // Get a user by ID
 export const getUser = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const tokenData: any = req.user;
+  const auth = tokenData.user;
   try {
+    const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Users");
+    let editable: boolean;
+    if (userAccessLevel >= 1 && userAccessLevel < 5)
+      editable = true;
+    else
+      editable = false;
     const result = await sql("SELECT * FROM users WHERE id=@id", { id });
     if (result && result.length > 0) {
-      res.status(200).json(result[0]);
+      res.status(200).json({ result: result[0], editable: editable });
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -35,20 +90,28 @@ export const createUser = async (req: Request, res: Response) => {
   const { userName, email, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id } = req.body;
   const password = "12345";
   const hashedPassword = await User.hashPassword(password);
-  try {
-      const result = await sql(
-          'INSERT INTO users (userName, email, password, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id) VALUES (@userName, @email, @password, @fullName, @role_id, @mobilePhone, @mainPhone, @status, @business_unit_id, @team_id)',
-          { userName, email, password: hashedPassword, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id }
-      );
 
-      if (result && result.length > 0) {
-          res.status(201).json({ message: 'An user created successfully', user: result[0] });
-      } else {
-          res.status(400).json({ message: 'Error creating user' });
-      }
+  if (!userName) {
+    return res.status(400).json({ message: "Username is required." });
+  }
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+
+  try {
+    const result = await sql(
+      'INSERT INTO users (userName, email, password, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id) VALUES (@userName, @email, @password, @fullName, @role_id, @mobilePhone, @mainPhone, @status, @business_unit_id, @team_id)',
+      { userName, email, password: hashedPassword, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id }
+    );
+
+    if (result && result.length > 0) {
+      res.status(201).json({ message: 'An user created successfully', user: result[0] });
+    } else {
+      res.status(400).json({ message: 'Error creating user' });
+    }
   } catch (err) {
-      console.error('Error creating user:', err);
-      res.status(500).json({ message: 'Server error' });
+    console.error('Error creating user:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -56,6 +119,13 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { userName, email, fullName, role_id, mobilePhone, mainPhone, status, business_unit_id, team_id } = req.body;
+
+  if (!userName) {
+    return res.status(400).json({ message: "Username is required." });
+  }
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
 
   try {
     // Construct the SET clause dynamically
@@ -123,7 +193,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
 
 // Delete a user by IDs
-export const deleteUser = async (req: Request, res: Response) => {
+export const deleteUsers = async (req: Request, res: Response) => {
   const { ids } = req.body;
 
   if (!Array.isArray(ids)) {

@@ -1,11 +1,28 @@
 import { Request, Response } from 'express';
 import sql from '../config/db';
 
+// Get area access level
+export const getAreaAccessLevel = async (user_role_id: number, area_name: string) => {
+    const result = await sql('SELECT data_accesses.level FROM application_area_lists as lists LEFT JOIN areas ON lists.area_id = areas.id LEFT JOIN data_accesses ON lists.data_access_id = data_accesses.id WHERE role_id = @user_role_id AND areas.name = @area_name', { user_role_id, area_name });
+    if (result && result.length > 0)
+        return result[0].level;
+    else
+        return 0;
+};
+
 // Get all data access records
 export const getAllDataAccess = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Data Accesses");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM data_accesses');
-        res.status(200).json(result);
+        res.status(200).json({ result: result, editable: editable });
     } catch (err) {
         console.error('Error fetching data access records:', err);
         res.status(500).json({ message: 'Server error' });
@@ -15,12 +32,19 @@ export const getAllDataAccess = async (req: Request, res: Response) => {
 // Get a specific data access record by ID
 export const getDataAccess = async (req: Request, res: Response) => {
     const { id } = req.params;
-
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = await getAreaAccessLevel(auth.role_id, "Data Accesses");
+        let editable: boolean;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = await sql('SELECT * FROM data_accesses WHERE id = @id', { id });
 
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         } else {
             res.status(404).json({ message: 'Data access record not found' });
         }
@@ -34,6 +58,12 @@ export const getDataAccess = async (req: Request, res: Response) => {
 export const createDataAccess = async (req: Request, res: Response) => {
     const { name, level } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Data Access name is required." });
+    }
+    if (!level) {
+        return res.status(400).json({ message: "Data Access level is required." });
+    }
     try {
         const result = await sql(
             'INSERT INTO data_accesses (name, level) VALUES (@name, @level)',
@@ -56,6 +86,12 @@ export const updateDataAccess = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, level } = req.body;
 
+    if (!name) {
+        return res.status(400).json({ message: "Data Access name is required." });
+    }
+    if (!level) {
+        return res.status(400).json({ message: "Data Access level is required." });
+    }
     try {
         const result = await sql(
             'UPDATE data_accesses SET name = @name, level = @level WHERE id = @id',

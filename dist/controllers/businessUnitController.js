@@ -12,30 +12,48 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteBusinessUnit = exports.updateBusinessUnit = exports.createBusinessUnit = exports.getBusinessUnit = exports.getAllBusinessUnits = exports.getChildBusinessUnits = void 0;
+exports.deleteBusinessUnits = exports.updateBusinessUnit = exports.createBusinessUnit = exports.getBusinessUnit = exports.getAllBusinessUnits = exports.getChildBusinessUnits = void 0;
 const db_1 = __importDefault(require("../config/db"));
+const dataAccessController_1 = require("./dataAccessController");
 // Get child business units
-const getChildBusinessUnits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    // Check if id is provided and not null
-    if (!id || isNaN(Number(id))) {
-        return res.status(400).json({ message: 'Valid business unit ID is required' });
-    }
-    try {
-        const result = yield (0, db_1.default)('SELECT * FROM business_units WHERE parent_id = @id', { id });
-        res.status(200).json(result);
-    }
-    catch (err) {
-        console.error('Error fetching child business units:', err);
-        res.status(500).json({ message: 'Server error' });
-    }
+const getChildBusinessUnits = (parent_id) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield (0, db_1.default)('SELECT * FROM business_units WHERE parent_id = @parent_id', { parent_id });
+    return result;
 });
 exports.getChildBusinessUnits = getChildBusinessUnits;
 // Get all business units
 const getAllBusinessUnits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
-        const result = yield (0, db_1.default)('SELECT business_1.*, business_2.name parent_name FROM business_units business_1 LEFT JOIN business_units business_2 on business_1.parent_id = business_2.id');
-        res.status(200).json(result);
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Business Units");
+        const businessUnits = yield (0, db_1.default)('SELECT business_1.*, business_2.name parent_name FROM business_units business_1 LEFT JOIN business_units business_2 on business_1.parent_id = business_2.id');
+        if (!businessUnits)
+            return res.status(400).json({ message: 'Invalid businessUnits' });
+        let result;
+        let editable;
+        if (userAccessLevel === 1) {
+            result = businessUnits;
+            editable = true;
+        }
+        else if (userAccessLevel === 2) {
+            const parentBusinessUnit = businessUnits.filter(business => business.id === auth.business_unit_id);
+            const childBusinessUnit = businessUnits.filter(business => business.parent_id === auth.business_unit_id);
+            result = parentBusinessUnit.concat(childBusinessUnit);
+            editable = true;
+        }
+        else if (userAccessLevel === 3 || userAccessLevel === 4) {
+            result = businessUnits.filter(business => { return business.id === auth.business_unit_id; });
+            editable = true;
+        }
+        else if (userAccessLevel === 5) {
+            result = businessUnits.filter(business => { return business.id === auth.business_unit_id; });
+            editable = false;
+        }
+        else {
+            return res.status(400).json({ message: 'Invalid access level' });
+        }
+        res.status(200).json({ result: result, editable: editable });
     }
     catch (err) {
         console.error('Error fetching business units:', err);
@@ -46,10 +64,18 @@ exports.getAllBusinessUnits = getAllBusinessUnits;
 // Get a specific business unit by ID
 const getBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Business Units");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM business_units WHERE id = @id', { id });
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         }
         else {
             res.status(404).json({ message: 'Business unit not found' });
@@ -65,6 +91,12 @@ exports.getBusinessUnit = getBusinessUnit;
 const createBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
     const is_root = false;
+    if (!name) {
+        return res.status(400).json({ message: "Business unit name is required" });
+    }
+    if (!email) {
+        return res.status(400).json({ message: "Business unit email is required" });
+    }
     try {
         const result = yield (0, db_1.default)('INSERT INTO business_units (name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root) VALUES (@name, @parent_id, @website, @mainPhone, @otherPhone, @fax, @email, @street1, @street2, @street3, @city, @state, @zipCode, @region, @status, @is_root)', { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status, is_root });
         if (result && result.length > 0) {
@@ -84,6 +116,12 @@ exports.createBusinessUnit = createBusinessUnit;
 const updateBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const { name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Business unit name is required" });
+    }
+    if (!email) {
+        return res.status(400).json({ message: "Business unit email is required" });
+    }
     try {
         const result = yield (0, db_1.default)('UPDATE business_units SET name = @name, parent_id = @parent_id, website = @website, mainPhone = @mainPhone, otherPhone = @otherPhone, fax = @fax, email = @email, street1 = @street1, street2 = @street2, street3 = @street3, city = @city, state = @state, zipCode = @zipCode, region = @region, status = @status WHERE id = @id', { id, name, parent_id, website, mainPhone, otherPhone, fax, email, street1, street2, street3, city, state, zipCode, region, status });
         if (result && result.length > 0) {
@@ -100,7 +138,7 @@ const updateBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, funct
 });
 exports.updateBusinessUnit = updateBusinessUnit;
 // Delete a business unit
-const deleteBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const deleteBusinessUnits = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
         return res.status(400).json({ message: 'IDs must be an array' });
@@ -121,5 +159,5 @@ const deleteBusinessUnit = (req, res) => __awaiter(void 0, void 0, void 0, funct
         res.status(500).json({ message: 'Server error' });
     }
 });
-exports.deleteBusinessUnit = deleteBusinessUnit;
+exports.deleteBusinessUnits = deleteBusinessUnits;
 //# sourceMappingURL=businessUnitController.js.map

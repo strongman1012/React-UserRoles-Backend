@@ -16,8 +16,9 @@ exports.checkPermission = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const checkPermission = (area_name) => {
     return (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-        const { user_role_id } = req.body;
-        const role_id = user_role_id;
+        const tokenData = req.user;
+        const auth = tokenData.user;
+        const role_id = auth.role_id;
         try {
             // Get role name
             const roleResult = yield (0, db_1.default)('SELECT name FROM roles WHERE id = @role_id', { role_id });

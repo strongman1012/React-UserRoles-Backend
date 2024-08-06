@@ -12,13 +12,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteApplication = exports.updateApplication = exports.createApplication = exports.getApplication = exports.getAllApplications = void 0;
+exports.deleteApplications = exports.updateApplication = exports.createApplication = exports.getApplication = exports.getAllApplications = void 0;
+const dataAccessController_1 = require("./dataAccessController");
 const db_1 = __importDefault(require("../config/db"));
 // Get all applications
 const getAllApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Applications");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM applications');
-        res.status(200).json(result);
+        res.status(200).json({ result: result, editable: editable });
     }
     catch (err) {
         console.error('Error fetching applications:', err);
@@ -29,10 +38,18 @@ exports.getAllApplications = getAllApplications;
 // Get a specific application by ID
 const getApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const tokenData = req.user;
+    const auth = tokenData.user;
     try {
+        const userAccessLevel = yield (0, dataAccessController_1.getAreaAccessLevel)(auth.role_id, "Applications");
+        let editable;
+        if (userAccessLevel >= 1 && userAccessLevel < 5)
+            editable = true;
+        else
+            editable = false;
         const result = yield (0, db_1.default)('SELECT * FROM applications WHERE id = @id', { id });
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            res.status(200).json({ result: result[0], editable: editable });
         }
         else {
             res.status(404).json({ message: 'Application not found' });
@@ -47,6 +64,9 @@ exports.getApplication = getApplication;
 // Create a new application
 const createApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, description } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Application name is required" });
+    }
     try {
         const result = yield (0, db_1.default)('INSERT INTO applications (name, description) VALUES (@name, @description)', { name, description });
         if (result && result.length > 0) {
@@ -66,6 +86,9 @@ exports.createApplication = createApplication;
 const updateApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
     const { name, description } = req.body;
+    if (!name) {
+        return res.status(400).json({ message: "Application name is required" });
+    }
     try {
         const result = yield (0, db_1.default)('UPDATE applications SET name = @name, description = @description WHERE id = @id', { id, name, description });
         if (result && result.length > 0) {
@@ -81,22 +104,27 @@ const updateApplication = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.updateApplication = updateApplication;
-// Delete an application
-const deleteApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
+// Delete applications
+const deleteApplications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { ids } = req.body;
+    if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: 'IDs must be an array' });
+    }
     try {
-        const result = yield (0, db_1.default)('DELETE FROM applications WHERE id = @id', { id });
-        if (result && result.length > 0) {
-            res.status(200).json({ message: 'Application deleted successfully' });
+        const placeholders = ids.map((id, index) => `@id${index}`).join(',');
+        const parameters = ids.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`id${index}`]: id })), {});
+        const result = yield (0, db_1.default)(`DELETE FROM applications WHERE id IN (${placeholders})`, parameters);
+        if ((result === null || result === void 0 ? void 0 : result[0]) > 0) {
+            res.status(200).json({ message: 'Applications deleted successfully' });
         }
         else {
-            res.status(404).json({ message: 'Application not found' });
+            res.status(404).json({ message: 'Applications not found' });
         }
     }
     catch (err) {
-        console.error('Error deleting application:', err);
+        console.error('Error deleting applications:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
-exports.deleteApplication = deleteApplication;
+exports.deleteApplications = deleteApplications;
 //# sourceMappingURL=applicationController.js.map
