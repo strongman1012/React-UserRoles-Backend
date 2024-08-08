@@ -16,6 +16,7 @@ const areaRoutes_1 = __importDefault(require("./routes/areaRoutes"));
 const businessUnitRoutes_1 = __importDefault(require("./routes/businessUnitRoutes"));
 const teamRoutes_1 = __importDefault(require("./routes/teamRoutes"));
 const dataAccessRoutes_1 = __importDefault(require("./routes/dataAccessRoutes"));
+const loginReportRoutes_1 = __importDefault(require("./routes/loginReportRoutes"));
 const config_1 = __importDefault(require("./config/config"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -32,6 +33,7 @@ app.use(`/api/${API_VERSION}`, areaRoutes_1.default);
 app.use(`/api/${API_VERSION}`, businessUnitRoutes_1.default);
 app.use(`/api/${API_VERSION}`, teamRoutes_1.default);
 app.use(`/api/${API_VERSION}`, dataAccessRoutes_1.default);
+app.use(`/api/${API_VERSION}`, loginReportRoutes_1.default);
 const PORT = config_1.default.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 //# sourceMappingURL=index.js.map

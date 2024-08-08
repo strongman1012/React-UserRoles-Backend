@@ -16,6 +16,7 @@ exports.logout = exports.azureAdLogin = exports.login = exports.register = void 
 const User_1 = __importDefault(require("../models/User"));
 const jwt_1 = require("../config/jwt");
 const db_1 = __importDefault(require("../config/db"));
+const loginReportController_1 = require("../controllers/loginReportController");
 // Helper function to create a new user
 function createUser(userName, email, password) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -83,6 +84,12 @@ const azureAdLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.azureAdLogin = azureAdLogin;
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
+    // Current timestamp
+    const date = new Date().toISOString();
+    const { application } = req.body;
+    (0, loginReportController_1.createLoginReport)(auth.id, date, "Logout", application, true);
     res.status(200).json({ message: 'Logout successful' });
 });
 exports.logout = logout;

@@ -11,6 +11,7 @@ import areaRoutes from './routes/areaRoutes';
 import businessUnitRoutes from './routes/businessUnitRoutes';
 import teamRoutes from './routes/teamRoutes';
 import dataAccessRoutes from './routes/dataAccessRoutes';
+import loginReportRoutes from './routes/loginReportRoutes';
 import config from './config/config';
 
 const app = express();
@@ -30,6 +31,7 @@ app.use(`/api/${API_VERSION}`, areaRoutes);
 app.use(`/api/${API_VERSION}`, businessUnitRoutes);
 app.use(`/api/${API_VERSION}`, teamRoutes);
 app.use(`/api/${API_VERSION}`, dataAccessRoutes);
+app.use(`/api/${API_VERSION}`, loginReportRoutes);
 
 const PORT = config.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

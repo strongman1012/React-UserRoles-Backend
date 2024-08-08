@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import { generateToken } from '../config/jwt';
 import sql from '../config/db';
+import { createLoginReport } from '../controllers/loginReportController';
 
 // Helper function to create a new user
 async function createUser(userName: string, email: string, password: string): Promise<User | null> {
@@ -73,5 +74,11 @@ export const azureAdLogin = async (req: Request, res: Response) => {
 };
 
 export const logout = async (req: Request, res: Response) => {
+  const tokenData: any = req.user;
+  const auth = tokenData.user;
+  // Current timestamp
+  const date = new Date().toISOString();
+  const { application } = req.body;
+  createLoginReport(auth.id, date, "Logout", application, true)
   res.status(200).json({ message: 'Logout successful' });
 };
