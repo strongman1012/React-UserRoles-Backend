@@ -69,6 +69,11 @@ export const getUserMetrics = async (req: Request, res: Response) => {
             ORDER BY 
                 login_date ASC;
         `, { user_id });
+        const sortedResult = result?.sort((a, b) => {
+            const dateA: any = new Date(a.login_date);
+            const dateB: any = new Date(b.login_date);
+            return dateA - dateB;
+        });
         res.status(200).json(result);
     } catch (err) {
         console.error('Error fetching login reports:', err);
