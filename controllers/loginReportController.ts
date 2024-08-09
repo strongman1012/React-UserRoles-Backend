@@ -67,7 +67,7 @@ export const getUserMetrics = async (req: Request, res: Response) => {
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23)
             ORDER BY 
-                MIN(date) ASC;
+                login_date ASC;
         `, { user_id });
         res.status(200).json(result);
     } catch (err) {
