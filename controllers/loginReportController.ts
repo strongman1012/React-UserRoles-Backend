@@ -67,7 +67,13 @@ export const getUserMetrics = async (req: Request, res: Response) => {
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23)
         `, { user_id });
-        res.status(200).json(result);
+        const sortedResult = result?.sort((a, b) => {
+            const dateA = new Date(a.login_date).getTime();
+            const dateB = new Date(b.login_date).getTime();
+            return dateA - dateB; // Sort in ascending order
+        });
+        
+        res.status(200).json(sortedResult);
     } catch (err) {
         console.error('Error fetching login reports:', err);
         res.status(500).json({ message: 'Server error' });
