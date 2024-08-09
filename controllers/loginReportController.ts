@@ -74,7 +74,7 @@ export const getUserMetrics = async (req: Request, res: Response) => {
             const dateB: any = new Date(b.login_date);
             return dateA - dateB;
         });
-        res.status(200).json(result);
+        res.status(200).json(sortedResult);
     } catch (err) {
         console.error('Error fetching login reports:', err);
         res.status(500).json({ message: 'Server error' });
