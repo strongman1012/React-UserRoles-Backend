@@ -1,19 +1,20 @@
 "use strict";
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
 Object.defineProperty(exports, "__esModule", { value: true });
 const config = {
     db: {
-        server: 'accesscontroltestserver.database.windows.net',
-        user: 'user',
-        password: 's5-G"5yb6d3]SUC>79>o',
-        database: 'accessControlServer'
+        server: (_a = process.env.DB_SERVER) !== null && _a !== void 0 ? _a : '',
+        user: (_b = process.env.DB_USER) !== null && _b !== void 0 ? _b : '',
+        password: (_c = process.env.DB_PASSWORD) !== null && _c !== void 0 ? _c : '',
+        database: (_d = process.env.DB_DATABASE) !== null && _d !== void 0 ? _d : ''
     },
-    jwtSecret: "jwt_secret",
+    jwtSecret: (_e = process.env.JWT_SECRET) !== null && _e !== void 0 ? _e : '',
     azure: {
-        clientId: 'fd6feea0-518e-40f4-b69c-13d7788c4085',
-        tenantId: 'c20a081b-c063-4eec-a696-ab10d1e15e70',
-        audience: 'fd6feea0-518e-40f4-b69c-13d7788c4085'
+        clientId: (_f = process.env.AZURE_CLIENT_ID) !== null && _f !== void 0 ? _f : '',
+        tenantId: (_g = process.env.AZURE_TENANT_ID) !== null && _g !== void 0 ? _g : '',
+        audience: (_h = process.env.AZURE_AUDIENCE) !== null && _h !== void 0 ? _h : ''
     },
-    port: 5000
+    port: (_j = process.env.PORT) !== null && _j !== void 0 ? _j : 5000
 };
 exports.default = config;
 //# sourceMappingURL=config.js.map
