@@ -25,10 +25,10 @@ class User implements UserAttributes {
     }
   }
 
-  public static async findByEmail(email: string): Promise<any> {
+  public static async findByEmail(email: string): Promise<User | null> {
     const result = await sql("SELECT * FROM users WHERE email=@user", { user: email });
     if (result && result.length > 0) {
-      return result[0];
+      return new User(result[0]);
     }
     return null;
   }
