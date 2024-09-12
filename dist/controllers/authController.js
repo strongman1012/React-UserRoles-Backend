@@ -67,7 +67,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = req.user; // Correctly type the user
+    const user = req.user;
     const { application } = req.body;
     const date = new Date().toISOString();
     // Fetch the user from the database
