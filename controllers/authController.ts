@@ -4,6 +4,8 @@ import { generateToken } from '../config/jwt';
 import sql from '../config/db';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { createLoginReport } from '../controllers/loginReportController';
+import { getUserAreas } from './areaListController';
+import { getSetting } from './settingController';
 
 // Helper function to create a new user
 async function createUser(userName: string, email: string, password: string): Promise<User | null> {
@@ -94,9 +96,11 @@ export const login = async (req: Request, res: Response) => {
   }
   // Respond based on permission
   if (hasPermission) {
+    const userAreas = await getUserAreas(result[0].role_ids);
+    const setting = await getSetting(result[0].id);
     const token = await generateToken(result[0]);
     createLoginReport(user.id, date, "Login", application, true, token);
-    return res.json({ token, message: "Login successful" });
+    return res.json({ token, message: "Login successful", userAreas, setting });
   } else {
     createLoginReport(user.id, date, "Login", application, false, null);
     return res.status(403).json({ message: "You don’t have permission to access this application" });
@@ -146,9 +150,11 @@ export const loginWithToken = async (req: Request, res: Response) => {
     }
     // Respond based on permission
     if (hasPermission) {
+      const userAreas = await getUserAreas(result[0].role_ids);
+      const setting = await getSetting(result[0].id);
       const token = await generateToken(result[0]);
       createLoginReport(user.id, date, "Login", application, true, token);
-      return res.json({ token, message: "Login successful" });
+      return res.json({ token, message: "Login successful", userAreas, setting });
     } else {
       createLoginReport(user.id, date, "Login", application, false, null);
       return res.status(403).json({ message: "You don’t have permission to access this application" });

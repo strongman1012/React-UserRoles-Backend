@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.userrole' });
 import express from 'express';
 import cors from 'cors';
 import passport from './config/passport';

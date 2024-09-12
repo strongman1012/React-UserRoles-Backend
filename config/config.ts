@@ -11,23 +11,24 @@ interface Config {
         tenantId: string;
         audience: string;
     };
-    port: number;
+    port: string | number;
 }
 
 const config: Config = {
     db: {
-        server: 'accesscontroltestserver.database.windows.net',
-        user: 'user',
-        password: 's5-G"5yb6d3]SUC>79>o',
-        database: 'accessControlServer'
+        server: process.env.DB_SERVER ?? '',
+        user: process.env.DB_USER ?? '',
+        password: process.env.DB_PASSWORD ?? '',
+        database: process.env.DB_DATABASE ?? ''
     },
-    jwtSecret: "jwt_secret",
+    jwtSecret: process.env.JWT_SECRET ?? '',
     azure: {
-        clientId: 'fd6feea0-518e-40f4-b69c-13d7788c4085',
-        tenantId: 'c20a081b-c063-4eec-a696-ab10d1e15e70',
-        audience: 'fd6feea0-518e-40f4-b69c-13d7788c4085'
+        clientId: process.env.AZURE_CLIENT_ID ?? '',
+        tenantId: process.env.AZURE_TENANT_ID ?? '',
+        audience: process.env.AZURE_AUDIENCE ?? ''
     },
-    port: 5000
+    port: process.env.PORT ?? 5000
 };
+
 
 export default config;
