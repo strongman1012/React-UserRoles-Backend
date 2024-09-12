@@ -57,7 +57,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  const user = req.user as any;
+  const user: any = req.user;
   const { application } = req.body;
   const date = new Date().toISOString();
 

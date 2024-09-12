@@ -36,7 +36,7 @@ class User {
         return __awaiter(this, void 0, void 0, function* () {
             const result = yield (0, db_1.default)("SELECT * FROM users WHERE email=@user", { user: email });
             if (result && result.length > 0) {
-                return new result[0];
+                return result[0];
             }
             return null;
         });
