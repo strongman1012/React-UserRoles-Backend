@@ -132,6 +132,10 @@ export const createUser = async (req: Request, res: Response) => {
   }
 
   try {
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
     const result = await sql(
       'INSERT INTO users (userName, email, password, fullName, role_ids, mobilePhone, mainPhone, status, business_unit_id, team_ids) VALUES (@userName, @email, @password, @fullName, @role_ids, @mobilePhone, @mainPhone, @status, @business_unit_id, @team_ids)',
       { userName, email, password: hashedPassword, fullName, role_ids, mobilePhone, mainPhone, status, business_unit_id, team_ids }
