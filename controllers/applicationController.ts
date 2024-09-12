@@ -48,13 +48,13 @@ export const getApplication = async (req: Request, res: Response) => {
 
 // Create a new application
 export const createApplication = async (req: Request, res: Response) => {
-    const { name, description } = req.body;
+    const { name, url, description } = req.body;
 
     if (!name) {
         return res.status(400).json({ message: "Application name is required" });
     }
     try {
-        const result = await sql('INSERT INTO applications (name, description) VALUES (@name, @description)', { name, description });
+        const result = await sql('INSERT INTO applications (name, url, description) VALUES (@name, @url, @description)', { name, url, description });
 
         if (result && result.length > 0) {
             const insertedApplication = await sql('SELECT * FROM applications ORDER BY id DESC');
@@ -71,13 +71,13 @@ export const createApplication = async (req: Request, res: Response) => {
 // Update an existing application
 export const updateApplication = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, url, description } = req.body;
 
     if (!name) {
         return res.status(400).json({ message: "Application name is required" });
     }
     try {
-        const result = await sql('UPDATE applications SET name = @name, description = @description WHERE id = @id', { id, name, description });
+        const result = await sql('UPDATE applications SET name = @name, url = @url, description = @description WHERE id = @id', { id, name, url, description });
 
         if (result && result.length > 0) {
             const updatedApplication = await sql('SELECT * FROM applications WHERE id=@id', { id });

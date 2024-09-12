@@ -63,12 +63,12 @@ const getApplication = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.getApplication = getApplication;
 // Create a new application
 const createApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, description } = req.body;
+    const { name, url, description } = req.body;
     if (!name) {
         return res.status(400).json({ message: "Application name is required" });
     }
     try {
-        const result = yield (0, db_1.default)('INSERT INTO applications (name, description) VALUES (@name, @description)', { name, description });
+        const result = yield (0, db_1.default)('INSERT INTO applications (name, url, description) VALUES (@name, @url, @description)', { name, url, description });
         if (result && result.length > 0) {
             const insertedApplication = yield (0, db_1.default)('SELECT * FROM applications ORDER BY id DESC');
             res.status(201).json({ message: 'Application created successfully', application: insertedApplication === null || insertedApplication === void 0 ? void 0 : insertedApplication[0] });
@@ -86,12 +86,12 @@ exports.createApplication = createApplication;
 // Update an existing application
 const updateApplication = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, url, description } = req.body;
     if (!name) {
         return res.status(400).json({ message: "Application name is required" });
     }
     try {
-        const result = yield (0, db_1.default)('UPDATE applications SET name = @name, description = @description WHERE id = @id', { id, name, description });
+        const result = yield (0, db_1.default)('UPDATE applications SET name = @name, url = @url, description = @description WHERE id = @id', { id, name, url, description });
         if (result && result.length > 0) {
             const updatedApplication = yield (0, db_1.default)('SELECT * FROM applications WHERE id=@id', { id });
             res.status(200).json({ message: 'Application updated successfully', application: updatedApplication === null || updatedApplication === void 0 ? void 0 : updatedApplication[0] });
