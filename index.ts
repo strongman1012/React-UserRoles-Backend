@@ -23,6 +23,7 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
+app.use(express.static("../client/build"));
 
 const API_VERSION = 'v0';
 app.use(`/api/${API_VERSION}`, authRoutes);

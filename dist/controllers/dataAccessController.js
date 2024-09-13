@@ -17,7 +17,7 @@ const db_1 = __importDefault(require("../config/db"));
 // Get area access level
 const getAreaAccessLevel = (user_role_ids, area_name) => __awaiter(void 0, void 0, void 0, function* () {
     // Convert the comma-separated string of role IDs into an array of integers
-    const roleIdsArray = user_role_ids.split(',').map(id => parseInt(id, 10));
+    const roleIdsArray = user_role_ids ? user_role_ids.split(',').map((id) => parseInt(id, 10)) : [];
     // Construct placeholders for the SQL query
     const placeholders = roleIdsArray.map((_, index) => `@role_id${index}`).join(',');
     const parameters = roleIdsArray.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`role_id${index}`]: id })), { area_name });
@@ -41,7 +41,7 @@ const getApplicationAreaAccessLevel = (req, res) => __awaiter(void 0, void 0, vo
     const auth = tokenData.user;
     const role_ids = auth.role_ids;
     // Convert the comma-separated string of role IDs into an array of integers
-    const roleIdsArray = role_ids.split(',').map(id => parseInt(id, 10));
+    const roleIdsArray = role_ids ? role_ids.split(',').map((id) => parseInt(id, 10)) : [];
     // Construct placeholders for the SQL query
     const placeholders = roleIdsArray.map((_, index) => `@role_id${index}`).join(',');
     const parameters = roleIdsArray.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`role_id${index}`]: id })), { area_name });

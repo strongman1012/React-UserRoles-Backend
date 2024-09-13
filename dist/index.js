@@ -26,6 +26,7 @@ app.use((0, cors_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(body_parser_1.default.json());
 app.use(passport_1.default.initialize());
+app.use(express_1.default.static("../client/build"));
 const API_VERSION = 'v0';
 app.use(`/api/${API_VERSION}`, authRoutes_1.default);
 app.use(`/api/${API_VERSION}`, userRoutes_1.default);

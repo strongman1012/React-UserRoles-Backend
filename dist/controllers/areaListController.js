@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.saveApplicationRoles = exports.getApplicationRoles = exports.saveList = exports.getSelectedAreas = exports.getUserAreas = void 0;
+exports.saveApplicationRoles = exports.getApplicationRoles = exports.saveList = exports.getSelectedAreas = exports.getUserAccess = void 0;
 const dataAccessController_1 = require("./dataAccessController");
 const db_1 = __importDefault(require("../config/db"));
-// GetUsersAreas for given roles
-const getUserAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const settingController_1 = require("./settingController");
+// GetUsersAccess for given roles
+const getUserAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const tokenData = req.user;
     const auth = tokenData.user;
     const role_ids = auth.role_ids;
@@ -24,7 +25,7 @@ const getUserAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         // Fetch all applications
         const applications = (yield (0, db_1.default)(`SELECT * FROM applications`)) || [];
         // Convert role_ids string to an array of integers
-        const roleIdsArray = role_ids.split(',').map((id) => parseInt(id, 10));
+        const roleIdsArray = role_ids ? role_ids.split(',').map((id) => parseInt(id, 10)) : [];
         // Generate SQL placeholders for role_ids
         const placeholders = roleIdsArray.map((_, index) => `@role_id${index}`).join(',');
         const parameters = roleIdsArray.reduce((acc, id, index) => (Object.assign(Object.assign({}, acc), { [`role_id${index}`]: id })), {});
@@ -64,15 +65,16 @@ const getUserAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 data: applicationData
             };
         })));
+        const setting = yield (0, settingController_1.getSetting)(auth.id);
         // Send the result as the response
-        res.status(200).json(result);
+        res.status(200).json({ application_areas: result, setting: setting });
     }
     catch (err) {
         console.error('Error fetching area lists:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
-exports.getUserAreas = getUserAreas;
+exports.getUserAccess = getUserAccess;
 // getSelectedAreas for a given role
 const getSelectedAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { role_id } = req.params;

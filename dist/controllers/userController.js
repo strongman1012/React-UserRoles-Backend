@@ -138,10 +138,6 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         return res.status(400).json({ message: "Email is required." });
     }
     try {
-        const existingUser = yield User_1.default.findByEmail(email);
-        if (existingUser) {
-            return res.status(400).json({ message: "Email already exists" });
-        }
         const result = yield (0, db_1.default)('INSERT INTO users (userName, email, password, fullName, role_ids, mobilePhone, mainPhone, status, business_unit_id, team_ids) VALUES (@userName, @email, @password, @fullName, @role_ids, @mobilePhone, @mainPhone, @status, @business_unit_id, @team_ids)', { userName, email, password: hashedPassword, fullName, role_ids, mobilePhone, mainPhone, status, business_unit_id, team_ids });
         if (result && result.length > 0) {
             const insertedUser = yield (0, db_1.default)('SELECT users.*, business_units.name AS business_name FROM users LEFT JOIN business_units ON users.business_unit_id = business_units.id ORDER BY users.id DESC');

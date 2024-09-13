@@ -15,22 +15,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.saveSetting = exports.getSetting = void 0;
 const db_1 = __importDefault(require("../config/db"));
 // Get setting by user_id
-const getSetting = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const tokenData = req.user;
-    const auth = tokenData.user;
-    const user_id = auth.id;
+const getSetting = (user_id) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const result = yield (0, db_1.default)('SELECT * FROM settings WHERE user_id = @user_id', { user_id });
         if (result && result.length > 0) {
-            res.status(200).json(result[0]);
+            return result[0];
         }
         else {
-            res.status(404).json({ message: 'Setting not found' });
+            return undefined;
         }
     }
     catch (err) {
         console.error('Error fetching setting:', err);
-        res.status(500).json({ message: 'Server error' });
+        return undefined;
     }
 });
 exports.getSetting = getSetting;

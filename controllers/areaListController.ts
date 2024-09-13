@@ -2,9 +2,10 @@ import e, { Request, Response } from 'express';
 import { Application, AreaList } from '../config/types';
 import { getAreaAccessLevel } from './dataAccessController';
 import sql from '../config/db';
+import { getSetting } from './settingController';
 
-// GetUsersAreas for given roles
-export const getUserAreas = async (req: Request, res: Response) => {
+// GetUsersAccess for given roles
+export const getUserAccess = async (req: Request, res: Response) => {
     const tokenData: any = req.user;
     const auth = tokenData.user;
     const role_ids = auth.role_ids;
@@ -14,7 +15,7 @@ export const getUserAreas = async (req: Request, res: Response) => {
         const applications: Application[] = await sql(`SELECT * FROM applications`) || [];
 
         // Convert role_ids string to an array of integers
-        const roleIdsArray = role_ids.split(',').map((id: string) => parseInt(id, 10));
+        const roleIdsArray = role_ids ? role_ids.split(',').map((id: string) => parseInt(id, 10)) : [];
 
         // Generate SQL placeholders for role_ids
         const placeholders = roleIdsArray.map((_: any, index: number) => `@role_id${index}`).join(',');
@@ -66,8 +67,10 @@ export const getUserAreas = async (req: Request, res: Response) => {
             };
         }));
 
+        const setting = await getSetting(auth.id);
+
         // Send the result as the response
-        res.status(200).json(result);
+        res.status(200).json({ application_areas: result, setting: setting });
     } catch (err) {
         console.error('Error fetching area lists:', err);
         res.status(500).json({ message: 'Server error' });

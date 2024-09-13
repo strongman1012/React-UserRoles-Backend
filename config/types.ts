@@ -44,8 +44,8 @@ export interface UserAttributes {
     mainPhone?: string;
     status?: boolean;
     photo?: string;
-    role_ids?: string | null;
-    business_unit_id?: number;
+    role_ids?: string | null | undefined;
+    business_unit_id?: number | undefined;
     team_ids?: string | null;
     business_name?: string;
 }

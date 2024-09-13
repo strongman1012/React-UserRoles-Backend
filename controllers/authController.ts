@@ -67,7 +67,7 @@ export const login = async (req: Request, res: Response) => {
   }
 
   // Get user's role IDs
-  const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+  const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
 
   // Check if the application exists and fetch its ID
   const applicationResult = await sql(
@@ -119,7 +119,7 @@ export const loginWithToken = async (req: Request, res: Response) => {
     }
 
     // Get user's role IDs
-    const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+    const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
 
     // Check if the application exists and fetch its ID
     const applicationResult = await sql(
@@ -169,7 +169,7 @@ export const azureAdLogin = async (req: Request, res: Response) => {
   }
 
   // Get user's role IDs
-  const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+  const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
 
   // Check if the application exists and fetch its ID
   const applicationResult = await sql(

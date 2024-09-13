@@ -4,7 +4,7 @@ import sql from '../config/db';
 // Get area access level
 export const getAreaAccessLevel = async (user_role_ids: string, area_name: string) => {
     // Convert the comma-separated string of role IDs into an array of integers
-    const roleIdsArray = user_role_ids.split(',').map(id => parseInt(id, 10));
+    const roleIdsArray = user_role_ids ? user_role_ids.split(',').map((id) => parseInt(id, 10)) : [];
 
     // Construct placeholders for the SQL query
     const placeholders = roleIdsArray.map((_, index) => `@role_id${index}`).join(',');
@@ -33,7 +33,7 @@ export const getApplicationAreaAccessLevel = async (req: Request, res: Response)
     const auth = tokenData.user;
     const role_ids: string = auth.role_ids;
     // Convert the comma-separated string of role IDs into an array of integers
-    const roleIdsArray = role_ids.split(',').map(id => parseInt(id, 10));
+    const roleIdsArray = role_ids ? role_ids.split(',').map((id) => parseInt(id, 10)) : [];
 
     // Construct placeholders for the SQL query
     const placeholders = roleIdsArray.map((_, index) => `@role_id${index}`).join(',');

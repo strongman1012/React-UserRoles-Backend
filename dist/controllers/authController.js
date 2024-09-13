@@ -74,7 +74,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         return res.status(400).json({ message: "User not found" });
     }
     // Get user's role IDs
-    const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+    const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
     // Check if the application exists and fetch its ID
     const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
     if (!applicationResult || applicationResult.length === 0) {
@@ -115,7 +115,7 @@ const loginWithToken = (req, res) => __awaiter(void 0, void 0, void 0, function*
             return res.status(400).json({ message: "User not found" });
         }
         // Get user's role IDs
-        const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+        const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
         // Check if the application exists and fetch its ID
         const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
         if (!applicationResult || applicationResult.length === 0) {
@@ -154,7 +154,7 @@ const azureAdLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         return res.status(400).json({ message: "User not found" });
     }
     // Get user's role IDs
-    const role_ids = result[0].role_ids.split(','); // Assuming role_ids are stored as a comma-separated string
+    const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
     // Check if the application exists and fetch its ID
     const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
     if (!applicationResult || applicationResult.length === 0) {
