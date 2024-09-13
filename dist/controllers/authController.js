@@ -18,8 +18,6 @@ const jwt_1 = require("../config/jwt");
 const db_1 = __importDefault(require("../config/db"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const loginReportController_1 = require("../controllers/loginReportController");
-const areaListController_1 = require("./areaListController");
-const settingController_1 = require("./settingController");
 // Helper function to create a new user
 function createUser(userName, email, password) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -67,7 +65,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.register = register;
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const user = req.user;
+    const user = req.user; // Correctly type the user
     const { application } = req.body;
     const date = new Date().toISOString();
     // Fetch the user from the database
@@ -94,11 +92,9 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     // Respond based on permission
     if (hasPermission) {
-        const userAreas = yield (0, areaListController_1.getUserAreas)(result[0].role_ids);
-        const setting = yield (0, settingController_1.getSetting)(result[0].id);
         const token = yield (0, jwt_1.generateToken)(result[0]);
         (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, true, token);
-        return res.json({ token, message: "Login successful", userAreas, setting });
+        return res.json({ token, message: "Login successful" });
     }
     else {
         (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, false, null);
@@ -137,11 +133,9 @@ const loginWithToken = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
         // Respond based on permission
         if (hasPermission) {
-            const userAreas = yield (0, areaListController_1.getUserAreas)(result[0].role_ids);
-            const setting = yield (0, settingController_1.getSetting)(result[0].id);
             const token = yield (0, jwt_1.generateToken)(result[0]);
             (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, true, token);
-            return res.json({ token, message: "Login successful", userAreas, setting });
+            return res.json({ token, message: "Login successful" });
         }
         else {
             (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, false, null);
@@ -178,11 +172,9 @@ const azureAdLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     // Respond based on permission
     if (hasPermission) {
-        const userAreas = yield (0, areaListController_1.getUserAreas)(result[0].role_ids);
-        const setting = yield (0, settingController_1.getSetting)(result[0].id);
         const token = yield (0, jwt_1.generateToken)(result[0]);
         (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, true, token);
-        return res.json({ token, message: "Login successful", userAreas, setting });
+        return res.json({ token, message: "Login successful" });
     }
     else {
         (0, loginReportController_1.createLoginReport)(user.id, date, "Login", application, false, null);

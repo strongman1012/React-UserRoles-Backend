@@ -2,18 +2,21 @@ import { Request, Response } from 'express';
 import sql from '../config/db';
 
 // Get setting by user_id
-export const getSetting = async (user_id: number) => {
+export const getSetting = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
+    const user_id = auth.id;
     try {
         const result = await sql('SELECT * FROM settings WHERE user_id = @user_id', { user_id });
 
         if (result && result.length > 0) {
-            return result[0];
+            res.status(200).json(result[0]);
         } else {
-            return undefined;
+            res.status(404).json({ message: 'Setting not found' });
         }
     } catch (err) {
         console.error('Error fetching setting:', err);
-        return undefined;
+        res.status(500).json({ message: 'Server error' });
     }
 };
 

@@ -16,7 +16,10 @@ exports.saveApplicationRoles = exports.getApplicationRoles = exports.saveList = 
 const dataAccessController_1 = require("./dataAccessController");
 const db_1 = __importDefault(require("../config/db"));
 // GetUsersAreas for given roles
-const getUserAreas = (role_ids) => __awaiter(void 0, void 0, void 0, function* () {
+const getUserAreas = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tokenData = req.user;
+    const auth = tokenData.user;
+    const role_ids = auth.role_ids;
     try {
         // Fetch all applications
         const applications = (yield (0, db_1.default)(`SELECT * FROM applications`)) || [];
@@ -61,16 +64,12 @@ const getUserAreas = (role_ids) => __awaiter(void 0, void 0, void 0, function* (
                 data: applicationData
             };
         })));
-        return result;
+        // Send the result as the response
+        res.status(200).json(result);
     }
     catch (err) {
         console.error('Error fetching area lists:', err);
-        return [{
-                application_name: '',
-                application_id: '',
-                permission: false,
-                data: []
-            }];
+        res.status(500).json({ message: 'Server error' });
     }
 });
 exports.getUserAreas = getUserAreas;

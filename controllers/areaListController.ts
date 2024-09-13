@@ -4,7 +4,11 @@ import { getAreaAccessLevel } from './dataAccessController';
 import sql from '../config/db';
 
 // GetUsersAreas for given roles
-export const getUserAreas = async (role_ids: string) => {
+export const getUserAreas = async (req: Request, res: Response) => {
+    const tokenData: any = req.user;
+    const auth = tokenData.user;
+    const role_ids = auth.role_ids;
+
     try {
         // Fetch all applications
         const applications: Application[] = await sql(`SELECT * FROM applications`) || [];
@@ -61,15 +65,12 @@ export const getUserAreas = async (role_ids: string) => {
                 data: applicationData
             };
         }));
-        return result;
+
+        // Send the result as the response
+        res.status(200).json(result);
     } catch (err) {
         console.error('Error fetching area lists:', err);
-        return [{
-            application_name: '',
-            application_id: '',
-            permission: false,
-            data: []
-        }]
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
