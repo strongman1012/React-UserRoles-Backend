@@ -61,6 +61,7 @@ const getUserAccess = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return {
                 application_name: application.name,
                 application_id: application.id,
+                application_url: application.url,
                 permission: hasPermission,
                 data: applicationData
             };

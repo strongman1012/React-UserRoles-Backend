@@ -62,6 +62,7 @@ export const getUserAccess = async (req: Request, res: Response) => {
             return {
                 application_name: application.name,
                 application_id: application.id,
+                application_url: application.url,
                 permission: hasPermission,
                 data: applicationData
             };
