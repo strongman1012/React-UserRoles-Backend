@@ -75,16 +75,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     // Get user's role IDs
     const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
-    // Check if the application exists and fetch its ID
-    const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
-    if (!applicationResult || applicationResult.length === 0) {
-        return res.status(400).json({ message: "Application not found" });
-    }
-    const applicationId = applicationResult[0].id;
     // Check if any of the user's roles have permission for this application
     let hasPermission = false;
     for (const roleId of role_ids) {
-        const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@applicationId", { roleId, applicationId });
+        const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@application", { roleId, application });
         if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission) {
             hasPermission = true;
             break;
@@ -116,16 +110,10 @@ const loginWithToken = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
         // Get user's role IDs
         const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
-        // Check if the application exists and fetch its ID
-        const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
-        if (!applicationResult || applicationResult.length === 0) {
-            return res.status(400).json({ message: "Application not found" });
-        }
-        const applicationId = applicationResult[0].id;
         // Check if any of the user's roles have permission for this application
         let hasPermission = false;
         for (const roleId of role_ids) {
-            const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@applicationId", { roleId, applicationId });
+            const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@application", { roleId, application });
             if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission) {
                 hasPermission = true;
                 break;
@@ -155,16 +143,10 @@ const azureAdLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     // Get user's role IDs
     const role_ids = result[0].role_ids ? result[0].role_ids.split(',') : []; // Assuming role_ids are stored as a comma-separated string
-    // Check if the application exists and fetch its ID
-    const applicationResult = yield (0, db_1.default)("SELECT id FROM applications WHERE name=@application", { application });
-    if (!applicationResult || applicationResult.length === 0) {
-        return res.status(400).json({ message: "Application not found" });
-    }
-    const applicationId = applicationResult[0].id;
     // Check if any of the user's roles have permission for this application
     let hasPermission = false;
     for (const roleId of role_ids) {
-        const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@applicationId", { roleId, applicationId });
+        const permissionResult = yield (0, db_1.default)("SELECT permission FROM application_roles WHERE role_id=@roleId AND application_id=@application", { roleId, application });
         if (permissionResult && permissionResult.length > 0 && permissionResult[0].permission) {
             hasPermission = true;
             break;

@@ -15,14 +15,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getApplicationCategory = exports.getApplicationTotalPercent = exports.getApplicationPerDayNumber = exports.getApplicationPerDayMin = exports.getUserMetrics = exports.getAllLoginReports = exports.createLoginReport = void 0;
 const db_1 = __importDefault(require("../config/db"));
 // Create a new login report
-const createLoginReport = (user_id, date, type, application_name, status, token) => __awaiter(void 0, void 0, void 0, function* () {
+const createLoginReport = (user_id, date, type, application_id, status, token) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield (0, db_1.default)(`INSERT INTO login_reports (user_id, date, type, application_name, status, token) 
-             VALUES (@user_id, @date, @type, @application_name, @status, @token)`, {
+        const result = yield (0, db_1.default)(`INSERT INTO login_reports (user_id, date, type, application_id, status, token) 
+             VALUES (@user_id, @date, @type, @application_id, @status, @token)`, {
             user_id,
             date,
             type,
-            application_name,
+            application_id,
             status,
             token
         });
@@ -45,11 +45,14 @@ const getAllLoginReports = (req, res) => __awaiter(void 0, void 0, void 0, funct
         const result = yield (0, db_1.default)(`
             SELECT 
                 login_reports.*, 
-                users.userName
+                users.userName,
+                applications.name application_name
             FROM 
                 login_reports 
             LEFT JOIN 
-                users ON login_reports.user_id = users.id 
+                users ON login_reports.user_id = users.id
+            LEFT JOIN
+                applications ON login_reports.application_id = applications.id 
              ORDER BY date DESC
         `);
         res.status(200).json(result);
@@ -88,16 +91,16 @@ const getApplicationPerDayMin = (req, res) => __awaiter(void 0, void 0, void 0, 
         const result = yield (0, db_1.default)(`
             SELECT 
                 CONVERT(VARCHAR(10), date, 23) AS usage_date,
-                application_name,
+                application_id,
                 SUM(usage_time) AS usage_time
             FROM 
                 login_reports
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23),
-                application_name
+                application_id
             ORDER BY 
                 usage_date ASC,
-                application_name ASC
+                application_id ASC
         `);
         res.status(200).json(result);
     }
@@ -113,7 +116,7 @@ const getApplicationPerDayNumber = (req, res) => __awaiter(void 0, void 0, void 
         const result = yield (0, db_1.default)(`
             SELECT 
                 CONVERT(VARCHAR(10), date, 23) AS usage_date,
-                application_name,
+                application_id,
                 COUNT(DISTINCT user_id) AS usage_users
             FROM 
                 login_reports
@@ -121,10 +124,10 @@ const getApplicationPerDayNumber = (req, res) => __awaiter(void 0, void 0, void 
                 status = 1
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23),
-                application_name
+                application_id
             ORDER BY 
                 usage_date ASC,
-                application_name ASC
+                application_id ASC
         `);
         res.status(200).json(result);
     }
@@ -139,7 +142,7 @@ const getApplicationTotalPercent = (req, res) => __awaiter(void 0, void 0, void 
     try {
         const result = yield (0, db_1.default)(`
             SELECT 
-                application_name,
+                application_id,
                 SUM(usage_time) AS total_usage_time,
                 RTRIM(CAST(ROUND((SUM(usage_time) * 100.0) / (SELECT SUM(usage_time) FROM login_reports WHERE usage_time IS NOT NULL), 2) AS DECIMAL(10, 2)) + 0.0) AS usage_percent
             FROM 
@@ -147,7 +150,7 @@ const getApplicationTotalPercent = (req, res) => __awaiter(void 0, void 0, void 
             WHERE 
                 usage_time IS NOT NULL
             GROUP BY 
-                application_name
+                application_id
             ORDER BY 
                 usage_percent DESC
         `);

@@ -6,19 +6,19 @@ export const createLoginReport = async (
     user_id: number,
     date: string,
     type: string,
-    application_name: string,
+    application_id: number,
     status: boolean,
     token: string | null
 ) => {
     try {
         const result = await sql(
-            `INSERT INTO login_reports (user_id, date, type, application_name, status, token) 
-             VALUES (@user_id, @date, @type, @application_name, @status, @token)`,
+            `INSERT INTO login_reports (user_id, date, type, application_id, status, token) 
+             VALUES (@user_id, @date, @type, @application_id, @status, @token)`,
             {
                 user_id,
                 date,
                 type,
-                application_name,
+                application_id,
                 status,
                 token
             }
@@ -41,11 +41,14 @@ export const getAllLoginReports = async (req: Request, res: Response) => {
         const result = await sql(`
             SELECT 
                 login_reports.*, 
-                users.userName
+                users.userName,
+                applications.name application_name
             FROM 
                 login_reports 
             LEFT JOIN 
-                users ON login_reports.user_id = users.id 
+                users ON login_reports.user_id = users.id
+            LEFT JOIN
+                applications ON login_reports.application_id = applications.id 
              ORDER BY date DESC
         `);
         res.status(200).json(result);
@@ -82,16 +85,16 @@ export const getApplicationPerDayMin = async (req: Request, res: Response) => {
         const result = await sql(`
             SELECT 
                 CONVERT(VARCHAR(10), date, 23) AS usage_date,
-                application_name,
+                application_id,
                 SUM(usage_time) AS usage_time
             FROM 
                 login_reports
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23),
-                application_name
+                application_id
             ORDER BY 
                 usage_date ASC,
-                application_name ASC
+                application_id ASC
         `);
 
         res.status(200).json(result);
@@ -107,7 +110,7 @@ export const getApplicationPerDayNumber = async (req: Request, res: Response) =>
         const result = await sql(`
             SELECT 
                 CONVERT(VARCHAR(10), date, 23) AS usage_date,
-                application_name,
+                application_id,
                 COUNT(DISTINCT user_id) AS usage_users
             FROM 
                 login_reports
@@ -115,10 +118,10 @@ export const getApplicationPerDayNumber = async (req: Request, res: Response) =>
                 status = 1
             GROUP BY 
                 CONVERT(VARCHAR(10), date, 23),
-                application_name
+                application_id
             ORDER BY 
                 usage_date ASC,
-                application_name ASC
+                application_id ASC
         `);
 
         res.status(200).json(result);
@@ -133,7 +136,7 @@ export const getApplicationTotalPercent = async (req: Request, res: Response) =>
     try {
         const result = await sql(`
             SELECT 
-                application_name,
+                application_id,
                 SUM(usage_time) AS total_usage_time,
                 RTRIM(CAST(ROUND((SUM(usage_time) * 100.0) / (SELECT SUM(usage_time) FROM login_reports WHERE usage_time IS NOT NULL), 2) AS DECIMAL(10, 2)) + 0.0) AS usage_percent
             FROM 
@@ -141,7 +144,7 @@ export const getApplicationTotalPercent = async (req: Request, res: Response) =>
             WHERE 
                 usage_time IS NOT NULL
             GROUP BY 
-                application_name
+                application_id
             ORDER BY 
                 usage_percent DESC
         `);
