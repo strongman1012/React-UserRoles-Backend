@@ -12,7 +12,7 @@ export const getChildBusinessUnits = async (parent_id: number) => {
 // Get all business units list
 export const getAllBusinessUnitsList = async (req: Request, res: Response) => {
     try {
-        const result = await sql('SELECT * FROM business_units');
+        const result = await sql('SELECT business_units.*, users.userName admin_name FROM business_units LEFT JOIN users ON business_units.admin_id = users.id');
         res.status(200).json(result);
     } catch (err) {
         console.error('Error fetching businessUnits:', err);

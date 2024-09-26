@@ -19,7 +19,7 @@ const businessUnitController_1 = require("./businessUnitController");
 // Get all teams list
 const getAllTeamsList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield (0, db_1.default)('SELECT * FROM teams');
+        const result = yield (0, db_1.default)('SELECT teams.*, business_units.name AS business_name FROM teams LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
         res.status(200).json(result);
     }
     catch (err) {

@@ -7,7 +7,7 @@ import { getChildBusinessUnits } from './businessUnitController';
 // Get all teams list
 export const getAllTeamsList = async (req: Request, res: Response) => {
     try {
-        const result = await sql('SELECT * FROM teams');
+        const result = await sql('SELECT teams.*, business_units.name AS business_name FROM teams LEFT JOIN business_units ON teams.business_unit_id = business_units.id');
         res.status(200).json(result);
     } catch (err) {
         console.error('Error fetching teams:', err);

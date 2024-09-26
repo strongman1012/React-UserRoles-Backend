@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.userrole' });
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import passport from './config/passport';
 import bodyParser from 'body-parser';
@@ -16,6 +16,7 @@ import dataAccessRoutes from './routes/dataAccessRoutes';
 import loginReportRoutes from './routes/loginReportRoutes';
 import settingRoutes from './routes/settingRoutes';
 import config from './config/config';
+import path from "path";
 
 const app = express();
 app.use(cors());
@@ -37,6 +38,11 @@ app.use(`/api/${API_VERSION}`, teamRoutes);
 app.use(`/api/${API_VERSION}`, dataAccessRoutes);
 app.use(`/api/${API_VERSION}`, loginReportRoutes);
 app.use(`/api/${API_VERSION}`, settingRoutes);
+
+// Catch-all route to serve the client's index.html file
+app.get("*", (req: Request, res: Response) => {
+	res.sendFile(path.resolve("../client/build/" + "index.html"));
+});
 
 const PORT = config.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

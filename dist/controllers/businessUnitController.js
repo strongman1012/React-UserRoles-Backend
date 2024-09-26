@@ -24,7 +24,7 @@ exports.getChildBusinessUnits = getChildBusinessUnits;
 // Get all business units list
 const getAllBusinessUnitsList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const result = yield (0, db_1.default)('SELECT * FROM business_units');
+        const result = yield (0, db_1.default)('SELECT business_units.*, users.userName admin_name FROM business_units LEFT JOIN users ON business_units.admin_id = users.id');
         res.status(200).json(result);
     }
     catch (err) {
