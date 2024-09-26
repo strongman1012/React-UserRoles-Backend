@@ -26,7 +26,6 @@ app.use((0, cors_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: false }));
 app.use(body_parser_1.default.json());
 app.use(passport_1.default.initialize());
-// app.use(express.static("../client/build"));
 const API_VERSION = 'v0';
 app.use(`/api/${API_VERSION}`, authRoutes_1.default);
 app.use(`/api/${API_VERSION}`, userRoutes_1.default);
@@ -39,10 +38,6 @@ app.use(`/api/${API_VERSION}`, teamRoutes_1.default);
 app.use(`/api/${API_VERSION}`, dataAccessRoutes_1.default);
 app.use(`/api/${API_VERSION}`, loginReportRoutes_1.default);
 app.use(`/api/${API_VERSION}`, settingRoutes_1.default);
-// // Catch-all route to serve the client's index.html file
-// app.get("*", (req: Request, res: Response) => {
-// 	res.sendFile(path.resolve("../client/build/" + "index.html"));
-// });
 const PORT = config_1.default.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
 //# sourceMappingURL=index.js.map

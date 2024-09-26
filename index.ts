@@ -16,7 +16,6 @@ import dataAccessRoutes from './routes/dataAccessRoutes';
 import loginReportRoutes from './routes/loginReportRoutes';
 import settingRoutes from './routes/settingRoutes';
 import config from './config/config';
-import path from "path";
 
 const app = express();
 app.use(cors());
@@ -24,7 +23,6 @@ app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(passport.initialize());
-// app.use(express.static("../client/build"));
 
 const API_VERSION = 'v0';
 app.use(`/api/${API_VERSION}`, authRoutes);
@@ -38,11 +36,6 @@ app.use(`/api/${API_VERSION}`, teamRoutes);
 app.use(`/api/${API_VERSION}`, dataAccessRoutes);
 app.use(`/api/${API_VERSION}`, loginReportRoutes);
 app.use(`/api/${API_VERSION}`, settingRoutes);
-
-// // Catch-all route to serve the client's index.html file
-// app.get("*", (req: Request, res: Response) => {
-// 	res.sendFile(path.resolve("../client/build/" + "index.html"));
-// });
 
 const PORT = config.port;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
